@@ -1,0 +1,461 @@
+<!doctype html>
+<html lang="uk">
+<meta charset="utf-8"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12100d"><link rel="icon" href="icons/favicon.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Брама Кодового королівства</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Alegreya+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* «Козацька хроніка»: the painted world map behind a dark smoked veil; each step sits on a dark steel panel with a thin gold rule. Single dark theme by choice. */
+:root{
+  --bg:#12100d; --panel:#1b1814; --panel-2:#241f19; --panel-3:#2f2820; --line:#3d342a; --line-hi:#5a4b38;
+  --gold:#c9a45c; --gold-hi:#ecd39c; --gold-deep:#9a7a3e;
+  --text:#ede5d5; --muted:#b4a78f; --faint:#857a66;
+  --c-intro:#56653a; --c-r1:#7e2a52; --c-r2:#355f33; --c-r3:#2a4d78; --c-r4:#8e4c1c; --c-r5:#4c3478;
+  --ok:#6f9a4a; --warn:#c99a3a; --bad:#c0543e;
+  --f-title:"Cormorant SC","Cormorant Garamond",Georgia,serif;
+  --f-story:"Cormorant Garamond",Georgia,serif;
+  --f-ui:"Alegreya Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--f-ui);font-size:16px;line-height:1.5;margin:0}
+#bg{position:fixed;inset:-16px;background:var(--bg) url(art/map/worldmap.jpg) center/cover no-repeat;filter:blur(3px) saturate(.9) brightness(.8);transform:scale(1.04);pointer-events:none}
+.veil{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%,rgba(18,16,13,.25) 0%,rgba(18,16,13,.72) 58%,rgba(18,16,13,.95) 100%);pointer-events:none}
+body.cab-on .veil,body.make-on .veil{background:rgba(18,16,13,.9)}
+.app{position:relative;min-height:100vh;display:grid;place-items:center;padding-block:36px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.logo{text-align:center;margin-bottom:22px}
+.logo .eyebrow{margin:0 0 6px;font-size:12px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold)}
+.logo h1{font-family:var(--f-title);font-weight:700;font-size:clamp(40px,7vw,64px);line-height:.95;margin:0;color:var(--gold-hi);text-shadow:0 2px 0 #000,0 10px 30px rgba(0,0,0,.7);letter-spacing:.01em}
+.logo p{margin:10px 0 0;font-family:var(--f-story);font-style:italic;font-weight:600;color:#d8ccb4;font-size:19px;text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.rule{display:flex;align-items:center;gap:10px;justify-content:center;color:var(--gold);margin-top:10px}
+.rule::before,.rule::after{content:"";height:1px;width:64px;background:linear-gradient(90deg,transparent,var(--gold))}
+.rule::after{transform:scaleX(-1)}
+.gate{width:100%;max-width:450px}
+.card{position:relative;background:linear-gradient(180deg,rgba(36,31,25,.96),rgba(27,24,20,.97));color:var(--text);border:1px solid var(--gold-deep);border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),inset 0 0 0 5px rgba(201,164,92,.08),0 30px 70px rgba(0,0,0,.65);padding:34px 28px 26px;display:grid;gap:16px}
+.card::before{content:"";position:absolute;inset:6px;border:1px solid rgba(201,164,92,.22);border-radius:2px;pointer-events:none}
+.card h2{font-family:var(--f-title);font-weight:700;font-size:28px;margin:0;line-height:1.1;text-wrap:balance;color:var(--gold-hi)}
+.card .sub{color:var(--muted);font-size:15px;margin:0}
+.seal{position:absolute;top:-24px;left:50%;transform:translateX(-50%);width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#b8473c,#6e1f1a 70%);border:2px solid #2a0f0c;display:grid;place-items:center;font-family:var(--f-code);font-weight:700;color:#f3d9c6;font-size:14px;box-shadow:0 0 0 3px rgba(201,164,92,.35),0 6px 14px rgba(0,0,0,.6)}
+.tabs{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--line);margin-top:6px}
+.tabs button{font:inherit;font-weight:700;font-size:15px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;padding:9px;background:transparent;color:var(--muted);cursor:pointer;letter-spacing:.04em}
+.tabs button[aria-selected="true"]{color:var(--gold-hi);border-bottom-color:var(--gold)}
+.roles{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.role{font:inherit;text-align:left;display:grid;grid-template-columns:38px 1fr;gap:10px;align-items:center;border:1px solid var(--line);background:var(--panel);border-radius:3px;padding:10px;cursor:pointer;color:var(--text);transition:border-color .15s}
+.role svg{width:38px;height:38px}
+.role b{display:block;font-size:15px}
+.role small{color:var(--muted);font-size:12.5px;line-height:1.3;display:block}
+.role:hover{border-color:var(--line-hi)}
+.role[aria-checked="true"]{border-color:var(--gold);background:var(--panel-3);box-shadow:inset 0 0 0 1px rgba(201,164,92,.35)}
+.field{display:grid;gap:6px}
+.field label{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.inp{position:relative}
+.inp input,.newform select,.newform input,.make input[type=text]{width:100%;font:inherit;font-size:16px;padding:11px 12px;border:1px solid var(--line-hi);border-radius:3px;background:#0f0d0b;color:var(--text)}
+.inp input::placeholder{color:var(--faint)}
+.inp input:focus,.newform input:focus,.newform select:focus,.make input[type=text]:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,92,.25)}
+.inp input[aria-invalid="true"]{border-color:var(--bad)}
+.inp .eye{position:absolute;right:6px;top:50%;transform:translateY(-50%);font:inherit;font-size:13px;font-weight:700;border:0;background:transparent;color:var(--muted);cursor:pointer;padding:6px 8px}
+.err{color:#e08a72;font-size:13.5px;font-weight:500}
+.err:empty{display:none}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.row input[type=checkbox]{accent-color:var(--gold)}
+.link{font:inherit;font-size:14px;background:none;border:0;padding:0;color:var(--gold-hi);font-weight:700;cursor:pointer;text-decoration:underline;text-decoration-color:var(--gold-deep);text-underline-offset:3px}
+.btn{font-family:var(--f-ui);font-weight:800;font-size:16px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--gold);border-radius:3px;padding:13px 18px;cursor:pointer;transition:filter .12s,transform .08s;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.gold{background:linear-gradient(180deg,#dcbc78,#b08a46);color:#1a130b;box-shadow:inset 0 1px 0 rgba(255,240,200,.6),0 6px 16px rgba(0,0,0,.45)}
+.btn.gold:hover{filter:brightness(1.07)}
+.btn.plain{background:transparent;color:var(--gold-hi)}
+.btn.plain:hover{background:rgba(201,164,92,.12)}
+.btn.sm{font-size:13px;padding:8px 12px}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.demo{border-top:1px solid var(--line);padding-top:14px;display:grid;gap:8px}
+.demo span{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.demo .row{justify-content:flex-start}
+.note{font-size:13.5px;color:#d8ccb4;text-shadow:0 1px 6px rgba(0,0,0,.95);text-align:center;margin:16px auto 0;max-width:450px}
+.note b{color:var(--gold-hi)}
+.mono{font-family:var(--f-code)}
+.codebox{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:nowrap}
+.codebox input{width:38px;height:52px;text-align:center;font-family:var(--f-code);font-weight:700;font-size:22px;text-transform:uppercase;border:1px solid var(--line-hi);border-radius:3px;background:#0f0d0b;color:var(--gold-hi);padding:0}
+.codebox input:focus{outline:none;border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,164,92,.25)}
+.codebox.bad input{border-color:var(--bad)}
+.codebox .dash{font-family:var(--f-code);font-weight:700;font-size:22px;color:var(--faint)}
+.hint{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--gold-deep);border-radius:3px;padding:10px 12px;font-size:14px;display:grid;gap:4px;color:var(--muted)}
+.hint b{color:var(--text)}
+.hint code{font-family:var(--f-code);font-weight:700;color:var(--gold-hi)}
+.joined{display:grid;gap:10px;justify-items:center;text-align:center}
+.crest{width:84px;height:96px;display:grid;place-items:center;background:var(--c,var(--c-r1));color:#f3e6c6;font-family:var(--f-title);font-weight:700;font-size:24px;clip-path:polygon(50% 0,100% 14%,100% 60%,50% 100%,0 60%,0 14%);box-shadow:inset 0 0 0 3px rgba(236,211,156,.6)}
+.shake{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@media (prefers-reduced-motion:reduce){.shake{animation:none}*{transition:none!important}}
+@media (max-width:400px){.codebox input{width:30px;height:46px;font-size:18px}.codebox{gap:4px}.roles{grid-template-columns:1fr}}
+
+/* teacher cabinet */
+.cab{width:100%;max-width:1100px;align-self:start}
+.cab .top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px}
+.cab .top h1{font-family:var(--f-title);font-weight:700;font-size:34px;color:var(--gold-hi);margin:0}
+.who{display:flex;gap:10px;align-items:center;font-size:14px;color:var(--muted)}
+.who b{color:var(--text)}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:18px;border-bottom:1px solid var(--line)}
+.nav button{font:inherit;font-weight:700;font-size:15px;padding:9px 14px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:transparent;color:var(--muted);cursor:pointer}
+.nav button[aria-selected="true"]{color:var(--gold-hi);border-bottom-color:var(--gold)}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:22px;display:grid;gap:18px}
+.sheet h2{font-family:var(--f-title);font-weight:700;font-size:28px;margin:0;color:var(--gold-hi)}
+.sheet .sub{color:var(--muted);font-size:14.5px;margin:0}
+.sh-top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.classes{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.cls{background:var(--panel-2);border:1px solid var(--line);border-top:3px solid var(--c);border-radius:3px;padding:16px;display:grid;gap:10px;cursor:pointer;text-align:left;font:inherit;color:inherit;transition:border-color .15s}
+.cls:hover{border-color:var(--gold-deep);border-top-color:var(--c)}
+.cls .h{display:flex;justify-content:space-between;align-items:center}
+.cls .h b{font-family:var(--f-title);font-weight:700;font-size:28px}
+.cls .tag,.tag{font-size:12px;font-weight:700;padding:2px 8px;border-radius:2px;background:var(--c);color:#f3e6c6}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px}
+.kv span{color:var(--muted)}
+.kv b{font-variant-numeric:tabular-nums}
+.codechip{display:flex;align-items:center;gap:8px;background:#0f0d0b;border:1px dashed var(--gold-deep);border-radius:3px;padding:6px 8px 6px 10px;font-family:var(--f-code);font-weight:700;font-size:15px;justify-content:space-between;color:var(--gold-hi);flex-wrap:wrap}
+.copy{font:inherit;font-family:var(--f-ui);font-size:12.5px;font-weight:700;border:1px solid var(--gold-deep);border-radius:2px;background:transparent;color:var(--gold-hi);padding:4px 8px;cursor:pointer}
+.copy:hover{background:rgba(201,164,92,.14)}
+.newform{background:var(--panel-2);border:1px solid var(--gold-deep);border-radius:3px;padding:16px;display:grid;gap:12px}
+.newform .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.newform label{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.invite{display:grid;gap:10px;background:var(--panel-2);border:1px solid var(--gold-deep);border-radius:3px;padding:16px}
+.invite .lnk{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.invite .lnk code{font-family:var(--f-code);font-size:13px;background:#0f0d0b;border-radius:2px;padding:6px 8px;overflow-wrap:anywhere;min-width:0;flex:1;color:var(--gold-hi)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{background:var(--panel-2);border:1px solid var(--line);border-radius:3px;padding:12px}
+.kpi b{display:block;font-family:var(--f-title);font-size:30px;line-height:1;font-variant-numeric:lining-nums tabular-nums;color:var(--gold-hi)}
+.kpi span{font-size:13px;color:var(--muted)}
+.tbl{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px;min-width:620px;color:inherit}
+th{text-align:left;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:8px 10px;border-bottom:1px solid var(--gold-deep);white-space:nowrap}
+td{padding:10px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+td.n{font-family:var(--f-code)}
+.acc{display:flex;align-items:center;gap:8px}
+.acc .tr{width:70px;height:6px;border-radius:1px;background:var(--panel-3);overflow:hidden}
+.acc .tr i{display:block;height:100%;background:var(--c);width:var(--w)}
+.pill{display:inline-block;padding:2px 8px;border-radius:2px;font-size:12px;font-weight:700;border:1px solid currentColor;white-space:nowrap}
+.back{font:inherit;font-size:14px;font-weight:700;background:none;border:0;color:var(--muted);cursor:pointer;padding:0;justify-self:start}
+.empty{padding:24px;text-align:center;color:var(--muted);border:1px dashed var(--line-hi);border-radius:3px}
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--panel-3);color:var(--gold-hi);border:1px solid var(--gold);border-radius:3px;padding:10px 16px;font-weight:700;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.6);z-index:20;max-width:calc(100vw - 32px)}
+.world{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.land{border-radius:3px;border:1px solid var(--line);background:var(--panel-2);overflow:hidden}
+.land img{display:block;width:100%;aspect-ratio:3.75/1;object-fit:cover}
+.land div{padding:12px;display:grid;gap:4px;font-size:14px;border-top:3px solid var(--c)}
+.land b{font-family:var(--f-title);font-weight:700;font-size:21px}
+.land span{color:var(--muted)}
+@media (max-width:640px){.kpis{grid-template-columns:1fr 1fr}.newform .grid{grid-template-columns:1fr}}
+
+/* hero maker */
+.make{width:100%;max-width:1080px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:22px;align-items:start}
+.make h1{font-family:var(--f-title);font-weight:700;font-size:clamp(32px,4.4vw,48px);line-height:1;color:var(--gold-hi);margin:0}
+.make .lead{margin:6px 0 0;color:var(--muted)}
+.portrait{position:relative;aspect-ratio:3/4;border:1px solid var(--gold-deep);border-radius:4px;overflow:hidden;background:#0c0a08;box-shadow:0 30px 70px rgba(0,0,0,.6)}
+.portrait::after{content:"";position:absolute;inset:8px;border:1px solid rgba(201,164,92,.35);pointer-events:none}
+.portrait img{width:100%;height:100%;object-fit:cover;object-position:50% 18%;display:block}
+.portrait .plate{position:absolute;left:0;right:0;bottom:0;padding:44px 20px 18px;background:linear-gradient(0deg,rgba(12,10,8,.95),rgba(12,10,8,0));display:grid;gap:2px}
+.portrait .plate b{font-family:var(--f-title);font-size:34px;line-height:1;color:var(--gold-hi)}
+.portrait .plate span{font-family:var(--f-story);font-style:italic;font-weight:600;font-size:18px;color:#d8ccb4}
+.portrait .band{position:absolute;top:0;right:22px;width:30px;height:84px;background:var(--cloth);clip-path:polygon(0 0,100% 0,100% 100%,50% 80%,0 100%);box-shadow:inset 0 0 0 2px rgba(236,211,156,.5)}
+.missing{position:absolute;inset:0;display:grid;place-items:center;align-content:center;gap:12px;padding:28px;text-align:center;background:radial-gradient(ellipse at 50% 35%,#2a241c,#0c0a08 70%)}
+.missing svg{width:120px;height:160px;opacity:.55}
+.missing p{margin:0;color:var(--muted);font-size:14.5px;max-width:34ch}
+.opts{display:grid;gap:16px}
+.opt{display:grid;gap:8px}
+.opt>span{font-size:12.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;flex-wrap:wrap;gap:6px}
+.seg button{font:inherit;font-weight:700;font-size:15px;padding:8px 14px;border:1px solid var(--line-hi);border-radius:3px;background:var(--panel);color:var(--text);cursor:pointer}
+.seg button[aria-checked="true"]{border-color:var(--gold);background:var(--panel-3);color:var(--gold-hi);box-shadow:inset 0 0 0 1px rgba(201,164,92,.4)}
+.sw{display:flex;gap:10px;flex-wrap:wrap}
+.sw button{display:grid;justify-items:center;gap:4px;font:inherit;font-size:12.5px;color:var(--muted);background:none;border:0;cursor:pointer;padding:0}
+.sw i{width:40px;height:40px;border-radius:50%;background:var(--c);border:2px solid var(--line-hi);box-shadow:inset 0 -6px 10px rgba(0,0,0,.25)}
+.sw button[aria-checked="true"] i{border-color:var(--gold-hi);box-shadow:0 0 0 3px rgba(201,164,92,.35),inset 0 -6px 10px rgba(0,0,0,.25)}
+.sw button[aria-checked="true"]{color:var(--gold-hi)}
+.promptbox{background:#0f0d0b;border:1px dashed var(--gold-deep);border-radius:3px;padding:10px 12px;display:grid;gap:8px}
+.promptbox code{max-height:150px;overflow:auto;font-family:var(--f-code);font-size:12px;line-height:1.5;color:#d8ccb4;white-space:pre-wrap;word-break:break-word}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.actions .btn.gold{flex:1}
+.ready{max-width:560px;text-align:center}
+@media (max-width:820px){.make{grid-template-columns:minmax(0,1fr)}.portrait{max-width:420px;margin:0 auto;width:100%}}
+:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+</style>
+
+<div id="bg" aria-hidden="true"></div>
+<div class="veil"></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="ic-student" viewBox="0 0 40 40"><path d="M20 4l14 5v10c0 8-6 14-14 17C12 33 6 27 6 19V9z" fill="#2b2620" stroke="#c9a45c" stroke-width="1.6"/><path d="M14 16l-3 4 3 4M26 16l3 4-3 4M22 14l-4 12" fill="none" stroke="#ecd39c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="ic-teacher" viewBox="0 0 40 40"><path d="M9 6h17l5 5v23H9z" fill="#2b2620" stroke="#c9a45c" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 15h12M14 20h12M14 25h8" stroke="#ecd39c" stroke-width="1.8" stroke-linecap="round"/><circle cx="30" cy="31" r="5.5" fill="#7e2a52" stroke="#c9a45c" stroke-width="1.4"/></symbol>
+  <symbol id="ic-sil" viewBox="0 0 120 160"><circle cx="60" cy="46" r="24" fill="#c9a45c"/><path d="M14 160c2-44 20-68 46-68s44 24 46 68z" fill="#c9a45c"/></symbol>
+</svg>
+
+<main class="app" id="app"></main>
+<script>
+
+(function(){
+var CK=(function(){var K='ck.v1';
+function load(){try{return JSON.parse(localStorage.getItem(K))||{}}catch(e){return {}}}
+function save(d){try{localStorage.setItem(K,JSON.stringify(d))}catch(e){}}
+return {get:function(){var d=load();d.users=d.users||{};return d;},save:save,
+ me:function(){var d=this.get();return d.session&&d.users[d.session]||null;},
+ put:function(u){var d=this.get();d.users[u.email]=u;d.session=u.email;save(d);},
+ logout:function(){var d=this.get();d.session=null;save(d);},
+ ph:function(p){var h=5381;for(var i=0;i<p.length;i++)h=((h*33)^p.charCodeAt(i))>>>0;return 'h'+h.toString(36);}};})();
+function rnd(i,j){var s=Math.sin(i*127.1+j*311.7)*43758.5453;return s-Math.floor(s);}
+/* ============ demo data ============ */
+var NAMES=['Олеся Коваль','Максим Дяченко','Софія Ткачук','Артем Литвин','Дарина Петренко','Назар Бондар','Вероніка Шевчук','Тимофій Мельник','Анна Кравець','Богдан Олійник','Злата Савчук','Ярослав Гуменюк'];
+var TOPICS=['Створення власної мережі','Сервери та файлові сховища','Цифрова безпека','Конструктор вебсайтів','Вигляд документа'];
+function students(seed,n){var out=[];for(var k=0;k<n;k++){var r=rnd(seed,k),r2=rnd(k,seed);out.push({name:NAMES[(k+seed)%NAMES.length],lvl:2+Math.floor(r*7),topic:TOPICS[Math.floor(r2*TOPICS.length)],acc:Math.round(38+r2*58),quests:Math.floor(r*9)+1,bosses:Math.floor(r*3)});}return out;}
+var state={
+  user:null, // {email, role, name}
+  classes:[
+    {id:1,name:'7-А',grade:7,code:'7AQX-K29M',color:'var(--c-r1)',students:students(3,9)},
+    {id:2,name:'8-Б',grade:8,code:'RUNE-8B42',color:'var(--c-r2)',students:students(7,12)},
+    {id:3,name:'9-В',grade:9,code:'Z9VT-4HCP',color:'var(--c-r3)',students:[]}
+  ],
+  joined:null, tab:'login', role:'student', ttab:'classes', openClass:null, created:null
+};
+var _D=CK.get();if(_D.classes)state.classes=_D.classes;function saveClasses(){var d=CK.get();d.classes=state.classes;CK.save(d);}saveClasses();
+function allSt(c){var d=CK.get(),real=Object.keys(d.users).map(function(k){return d.users[k]}).filter(function(u){return u.role==='student'&&u.classId===c.id}).map(function(u){var done=!!(u.progress&&u.progress.camp&&u.progress.camp.done);return {name:(u.full||u.name)+(u.hero&&u.hero.name?' · '+u.hero.name:''),lvl:done?2:1,topic:done?'Узлісся: «Вогонь на узліссі» пройдено':(u.hero?'Узлісся: у таборі':'Створює героя'),acc:null,quests:done?1:0,bosses:0,isNew:!done,real:true,done:done};});return c.students.concat(real);}
+var JOIN_BASE='https://code-kingdom.example/join/';
+function genCode(){var A='ABCDEFGHJKMNPQRSTUVWXYZ23456789',s='';for(var k=0;k<8;k++){s+=A[Math.floor(Math.random()*A.length)];if(k===3)s+='-';}return s;}
+function norm(c){return (c||'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function findClass(code){var n=norm(code);return state.classes.filter(function(c){return norm(c.code)===n})[0];}
+
+/* prefill code from invite link: #join-RUNE8B42 */
+var pre=null;var m=(location.hash||'').match(/^#join-([A-Za-z0-9]{8})$/);if(m)pre=m[1].toUpperCase();
+if(pre)state.role='student';
+
+var app=document.getElementById('app');
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]});}
+function toast(t){window.CKS&&CKS('ui-toast',.35,{quiet:400});var d=document.createElement('div');d.className='toast';d.setAttribute('role','status');d.textContent=t;document.body.appendChild(d);setTimeout(function(){d.remove()},2200);}
+function copy(text,btn){var done=function(){toast('Скопійовано: '+text)};
+  try{navigator.clipboard.writeText(text).then(done,function(){sel(btn)});}catch(e){sel(btn)}}
+function sel(btn){var c=btn&&btn.parentNode.querySelector('code,.cv');if(c){var r=document.createRange();r.selectNodeContents(c);var s=getSelection();s.removeAllRanges();s.addRange(r);toast('Виділено, натисніть Ctrl+C');}}
+var logo='<div class="logo"><p class="eyebrow">Інформатика · 7–9 клас</p><h1>Кодове королівство</h1><div class="rule">✦</div><p>Знання тут сильніші за меч.</p></div>';
+
+/* ============ AUTH ============ */
+function renderAuth(){
+  var reg=state.tab==='register',teacher=state.role==='teacher';
+  app.innerHTML='<div class="gate">'+logo+
+  '<form class="card" id="authForm" novalidate>'+
+   '<span class="seal">{ }</span>'+
+   '<div class="tabs" role="tablist"><button type="button" role="tab" id="t-login" aria-selected="'+!reg+'">Вхід</button><button type="button" role="tab" id="t-reg" aria-selected="'+reg+'">Реєстрація</button></div>'+
+   '<div><h2>'+(reg?'Створи свій обліковий запис':'Брама королівства')+'</h2><p class="sub">'+(reg?'Обери, хто ти, і заповни поля нижче.':'Увійди за допомогою пошти та пароля.')+'</p></div>'+
+   '<div class="roles" role="radiogroup" aria-label="Тип акаунта">'+
+     '<button type="button" class="role" role="radio" id="r-student" aria-checked="'+!teacher+'"><svg><use href="#ic-student"/></svg><span><b>Учень</b><small>Проходжу квести й бої</small></span></button>'+
+     '<button type="button" class="role" role="radio" id="r-teacher" aria-checked="'+teacher+'"><svg><use href="#ic-teacher"/></svg><span><b>Вчитель</b><small>Створюю класи та завдання</small></span></button>'+
+   '</div>'+
+   (reg?'<div class="field"><label for="f-name">'+(teacher?'Ім’я та по батькові':'Ім’я та прізвище')+'</label><div class="inp"><input id="f-name" autocomplete="name" placeholder="'+(teacher?'Ірина Петрівна':'Олеся Коваль')+'"></div><span class="err" id="e-name"></span></div>':'')+
+   (reg&&teacher?'<div class="field"><label for="f-school">Заклад освіти</label><div class="inp"><input id="f-school" placeholder="Ліцей №12, м. Житомир"></div><span class="err" id="e-school"></span></div>':'')+
+   '<div class="field"><label for="f-email">Електронна пошта</label><div class="inp"><input id="f-email" type="email" autocomplete="email" placeholder="name@school.ua"></div><span class="err" id="e-email"></span></div>'+
+   '<div class="field"><label for="f-pass">Пароль</label><div class="inp"><input id="f-pass" type="password" autocomplete="'+(reg?'new-password':'current-password')+'" placeholder="'+(reg?'Не менше 8 символів':'••••••••')+'"><button type="button" class="eye" id="eye">Показати</button></div><span class="err" id="e-pass"></span></div>'+
+   (reg?'<div class="field"><label for="f-pass2">Повтори пароль</label><div class="inp"><input id="f-pass2" type="password" autocomplete="new-password"></div><span class="err" id="e-pass2"></span></div>':
+        '<div class="row"><label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="f-keep" checked> Запам’ятати мене</label><button type="button" class="link" id="forgot">Забули пароль?</button></div>')+
+   '<button class="btn gold" type="submit">'+(reg?'Створити акаунт':'Увійти')+'</button>'+
+   (reg&&!teacher?'<p class="sub" style="font-size:13px">Після реєстрації потрібно ввести секретний код від учителя, щоб потрапити до свого класу.</p>':'')+
+   '<div class="demo"><span>Демо без реєстрації</span><div class="row"><button type="button" class="btn plain sm" id="d-st">Демо-учень</button><button type="button" class="btn plain sm" id="d-te">Демо-вчитель</button><button type="button" class="btn plain sm" id="d-hero">Створення героя</button></div></div>'+
+  '</form>'+
+  (pre?'<p class="note">Ви прийшли за посиланням-запрошенням. Після входу код класу <b class="mono">'+pre.slice(0,4)+'-'+pre.slice(4)+'</b> підставиться сам.</p>':'<p class="note">Це прототип: акаунти й прогрес зберігаються лише в цьому браузері.</p>')+
+  '</div>';
+  var $=function(id){return document.getElementById(id)};
+  $('t-login').onclick=function(){state.tab='login';renderAuth()};
+  $('t-reg').onclick=function(){state.tab='register';renderAuth()};
+  $('r-student').onclick=function(){state.role='student';renderAuth()};
+  $('r-teacher').onclick=function(){state.role='teacher';renderAuth()};
+  $('eye').onclick=function(){var p=$('f-pass');var s=p.type==='password';p.type=s?'text':'password';this.textContent=s?'Сховати':'Показати'};
+  if($('forgot'))$('forgot').onclick=function(){var e=$('f-email').value.trim();$('e-email').textContent='';$('e-pass').textContent='';
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){$('e-email').textContent='Введіть пошту, і ми надішлемо посилання для відновлення пароля.';return;}
+    toast('Лист для відновлення буде надіслано на '+e+' (у прототипі не надсилається)');};
+  $('d-st').onclick=function(){login({email:'olesia@school.ua',role:'student',name:'Олеся'})};
+  $('d-te').onclick=function(){login({email:'iryna.p@school.ua',role:'teacher',name:'Ірина Петрівна'})};
+  $('d-hero').onclick=function(){login({email:'olesia@school.ua',role:'student',name:'Олеся',classId:state.classes[0].id});state.joined=state.classes[0];state.heroDone=false;state.making=true;render();};
+  $('authForm').onsubmit=function(ev){ev.preventDefault();
+    var ok=true,set=function(id,msg){$('e-'+id).textContent=msg||'';var f=$('f-'+id);if(f)f.setAttribute('aria-invalid',msg?'true':'false');if(msg)ok=false;};
+    var email=$('f-email').value.trim(),pass=$('f-pass').value;
+    set('email',/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)?'':'Перевірте адресу пошти: має бути щось на зразок name@school.ua.');
+    if(reg){
+      var nm=$('f-name').value.trim();set('name',nm.length<2?'Вкажіть ім’я, щоб учитель упізнав вас.':'');
+      if(teacher)set('school',$('f-school').value.trim().length<3?'Вкажіть назву закладу освіти.':'');
+      set('pass',pass.length<8?'Пароль закороткий: потрібно щонайменше 8 символів.':'');
+      set('pass2',$('f-pass2').value!==pass?'Паролі не збігаються.':'');
+      if(ok){if(CK.get().users[email])set('email','Акаунт з такою поштою вже є. Перейдіть на вкладку «Вхід».');else login({email:email,role:state.role,name:nm.split(' ')[0],full:nm,school:teacher?$('f-school').value.trim():'',ph:CK.ph(pass)});}
+    }else{
+      set('pass',pass.length<1?'Введіть пароль.':'');
+      if(ok){var ex=CK.get().users[email];if(!ex)set('email','Такого акаунта ще немає. Зареєструйтеся на вкладці «Реєстрація» або натисніть демо нижче.');else if(ex.ph&&ex.ph!==CK.ph(pass))set('pass','Неправильний пароль.');else login(ex);}
+    }
+    if(!ok)$('authForm').classList.add('shake'),setTimeout(function(){$('authForm').classList.remove('shake')},400);
+  };
+}
+function login(u){var d=CK.get(),ex=d.users[u.email];if(ex)u=ex;else d.users[u.email]=u;d.session=u.email;CK.save(d);state.user=u;
+  state.joined=u.classId?(state.classes.filter(function(c){return c.id===u.classId})[0]||null):null;
+  if(u.hero){state.hero=Object.assign({},u.hero);state.heroDone=true;}render();}
+function logout(){CK.logout();state.making=false;state.heroDone=false;state.user=null;state.joined=null;state.openClass=null;state.created=null;state.tab='login';render();}
+
+/* ============ STUDENT: secret code ============ */
+function renderCode(){
+  app.innerHTML='<div class="gate">'+logo+
+  '<form class="card" id="codeForm" novalidate>'+
+   '<span class="seal">#!</span>'+
+   '<div style="margin-top:8px"><h2>Печатка доступу</h2><p class="sub">Вітаємо, '+esc(state.user.name)+'! Введи секретний код, який тобі дав учитель. Він приведе тебе до твого класу.</p></div>'+
+   '<div class="codebox" id="cb">'+[0,1,2,3].map(function(k){return'<input id="c'+k+'" maxlength="1" inputmode="text" autocomplete="off" aria-label="Символ '+(k+1)+'">'}).join('')+'<span class="dash">–</span>'+[4,5,6,7].map(function(k){return'<input id="c'+k+'" maxlength="1" inputmode="text" autocomplete="off" aria-label="Символ '+(k+1)+'">'}).join('')+'</div>'+
+   '<span class="err" id="e-code" role="alert" style="text-align:center"></span>'+
+   '<button class="btn gold" type="submit">Відкрити браму</button>'+
+   '<div class="hint"><b>Де взяти код?</b><span>Учитель надсилає посилання-запрошення або диктує код з 8 символів. Якщо відкрити посилання, код підставиться сам.</span><span>Для демо: <code>RUNE-8B42</code> (8-Б) або <code>7AQX-K29M</code> (7-А).</span></div>'+
+   '<div class="row"><span class="sub" style="font-size:13px">'+esc(state.user.email)+'</span><button type="button" class="link" id="out">Вийти</button></div>'+
+  '</form></div>';
+  var boxes=[];for(var k=0;k<8;k++)boxes.push(document.getElementById('c'+k));
+  function fill(s){s=norm(s).slice(0,8);boxes.forEach(function(b,k){b.value=s[k]||''});(boxes[Math.min(s.length,7)]).focus();}
+  boxes.forEach(function(b,k){
+    b.addEventListener('input',function(){var v=norm(b.value);if(v.length>1){fill(boxes.slice(0,k).map(function(x){return x.value}).join('')+v);return;}b.value=v;if(v)window.CKS&&CKS('gate-rune',.7);if(v&&k<7)boxes[k+1].focus();});
+    b.addEventListener('keydown',function(e){if(e.key==='Backspace'&&!b.value&&k>0){boxes[k-1].focus();boxes[k-1].value='';e.preventDefault();}if(e.key==='ArrowLeft'&&k>0)boxes[k-1].focus();if(e.key==='ArrowRight'&&k<7)boxes[k+1].focus();});
+    b.addEventListener('paste',function(e){e.preventDefault();fill((e.clipboardData||{}).getData?e.clipboardData.getData('text'):'');});
+  });
+  if(pre)fill(pre);else boxes[0].focus();
+  document.getElementById('out').onclick=logout;
+  document.getElementById('codeForm').onsubmit=function(e){e.preventDefault();
+    var code=boxes.map(function(b){return b.value}).join(''),err=document.getElementById('e-code'),cb=document.getElementById('cb');
+    if(code.length<8){(window.CKS&&CKS('ui-error',.5)),err.textContent='Код має 8 символів. Заповни всі клітинки.';cb.classList.add('bad');return;}
+    var c=findClass(code);
+    if(!c){window.CKS&&CKS('ui-error',.5);err.textContent='Такої печатки не знайдено. Перевір код в учителя.';cb.classList.add('bad');cb.classList.add('shake');setTimeout(function(){cb.classList.remove('shake')},400);return;}
+    state.user.classId=c.id;window.CKS&&CKS('gate-seal');CK.put(state.user);state.joined=c;pre=null;render();
+  };
+}
+function renderJoined(){
+  var c=state.joined;
+  app.innerHTML='<div class="gate">'+logo+'<div class="card"><span class="seal">✓</span>'+
+  '<div class="joined" style="margin-top:8px"><div class="crest" style="--c:'+c.color+'">'+esc(c.name)+'</div>'+
+  '<h2>Брама відчинена!</h2><p class="sub">Ти тепер у класі <b>'+esc(c.name)+'</b>. Учитель бачитиме твій поступ, а інші учні бачать лише рейтинг, без твоїх оцінок.</p></div>'+
+  '<button class="btn gold" id="go">Увійти в королівство</button>'+
+  '<div class="row"><span class="sub" style="font-size:13px">'+esc(state.user.email)+'</span><button type="button" class="link" id="out">Вийти</button></div></div></div>';
+  document.getElementById('go').onclick=function(){window.CKS&&CKS('gate-creak',.9);state.making=true;render();};
+  document.getElementById('out').onclick=logout;
+}
+
+/* ============ TEACHER cabinet ============ */
+function avg(c){if(!allSt(c).length)return null;var a=allSt(c).filter(function(s){return!s.isNew&&s.acc!=null});if(!a.length)return null;return Math.round(a.reduce(function(s,x){return s+x.acc},0)/a.length);}
+function accColor(a){return a>=80?'var(--ok)':a>=60?'var(--warn)':'var(--bad)';}
+function status(s){if(s.real&&s.done)return'<span class="pill" style="color:var(--ok)">Пройшов вступ</span>';if(s.isNew)return'<span class="pill" style="color:var(--muted)">Щойно приєднався</span>';if(s.acc>=80)return'<span class="pill" style="color:var(--ok)">Йде впевнено</span>';if(s.acc>=60)return'<span class="pill" style="color:var(--warn)">Варто повторити</span>';return'<span class="pill" style="color:var(--bad)">Потрібна допомога</span>';}
+function renderTeacher(){
+  var html='<div class="cab"><div class="top"><h1>Кабінет учителя</h1><div class="who"><span>Ви увійшли як <b>'+esc(state.user.name)+'</b></span><button class="btn plain sm" id="out">Вийти</button></div></div>'+
+  '<div class="nav" role="tablist"><button role="tab" id="n-cl" aria-selected="'+(state.ttab==='classes')+'">Класи</button><button role="tab" id="n-w" aria-selected="'+(state.ttab==='world')+'">Світ завдань</button></div>';
+  if(state.ttab==='world')html+=worldView();
+  else if(state.openClass)html+=classView(state.classes.filter(function(c){return c.id===state.openClass})[0]);
+  else html+=classesView();
+  app.innerHTML=html+'</div>';
+  bindTeacher();
+}
+function classesView(){
+  var h='<div class="sheet"><div class="sh-top"><div><h2>Мої класи</h2><p class="sub">У кожного класу свій код і посилання. Учні приєднуються лише за ними.</p></div><button class="btn gold sm" id="new">+ Створити клас</button></div>';
+  if(state.creating)h+='<form class="newform" id="nf"><b>Новий клас</b><div class="grid"><div class="field"><label for="nc-grade">Паралель</label><select id="nc-grade"><option>7</option><option selected>8</option><option>9</option></select></div><div class="field"><label for="nc-name">Назва класу</label><input id="nc-name" placeholder="8-А"></div></div><span class="err" id="e-nc"></span><div class="row" style="justify-content:flex-start"><button class="btn gold sm" type="submit">Створити й отримати код</button><button class="btn plain sm" type="button" id="cancel">Скасувати</button></div></form>';
+  if(state.created){var c=state.created;h+='<div class="invite"><b>Клас '+esc(c.name)+' створено. Надішліть учням одне з двох:</b>'+
+    '<div class="lnk"><span style="font-size:13px;color:var(--muted);width:80px">Код</span><code>'+c.code+'</code><button class="copy" data-copy="'+c.code+'">Копіювати</button></div>'+
+    '<div class="lnk"><span style="font-size:13px;color:var(--muted);width:80px">Посилання</span><code>'+JOIN_BASE+norm(c.code)+'</code><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Копіювати</button></div></div>';}
+  h+='<div class="classes">'+state.classes.map(function(c){var a=avg(c);return '<div class="cls" style="--c:'+c.color+'" role="button" tabindex="0" data-open="'+c.id+'"><div class="h"><b>'+esc(c.name)+'</b><span class="tag" style="--c:'+c.color+'">'+c.grade+' клас</span></div>'+
+   '<div class="kv"><span>Учнів</span><b>'+allSt(c).length+'</b><span>Точність</span><b>'+(a===null?'немає даних':a+'%')+'</b></div>'+
+   '<div class="codechip"><span class="cv">'+c.code+'</span><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Посилання</button></div></div>';}).join('')+'</div></div>';
+  return h;
+}
+function classView(c){
+  var a=avg(c),act=allSt(c).filter(function(s){return!s.isNew}),help=act.filter(function(s){return s.acc!=null&&s.acc<60}).length,boss=act.reduce(function(s,x){return s+x.bosses},0);
+  var rows=allSt(c).slice().sort(function(x,y){return (y.isNew?-1:y.acc)-(x.isNew?-1:x.acc)});
+  return '<div class="sheet"><button class="back" id="back">← Усі класи</button>'+
+  '<div class="sh-top"><div><h2>Клас '+esc(c.name)+'</h2><p class="sub">Успішність учнів цього класу. Учні не бачать результатів одне одного.</p></div>'+
+  '<div class="codechip" style="min-width:260px"><span class="cv">'+c.code+'</span><span style="display:flex;gap:6px"><button class="copy" data-copy="'+c.code+'">Код</button><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Посилання</button><button class="copy" id="regen" data-id="'+c.id+'">Новий код</button></span></div></div>'+
+  '<div class="kpis"><div class="kpi"><b>'+allSt(c).length+'</b><span>учнів у класі</span></div><div class="kpi"><b>'+(a===null?'—':a+'%')+'</b><span>середня точність</span></div><div class="kpi"><b>'+boss+'</b><span>босів переможено</span></div><div class="kpi"><b>'+help+'</b><span>потребують допомоги</span></div></div>'+
+  (allSt(c).length?'<div class="tbl"><table><thead><tr><th>Учень</th><th>Рівень</th><th>Поточна тема</th><th>Квести</th><th>Точність</th><th>Стан</th></tr></thead><tbody>'+
+   rows.map(function(s){return'<tr><td>'+esc(s.name)+'</td><td class="n">'+s.lvl+'</td><td>'+esc(s.topic)+'</td><td class="n">'+s.quests+'</td><td><div class="acc"><span class="tr"><i style="--c:'+accColor(s.acc)+';--w:'+(s.acc||0)+'%"></i></span><span class="n" style="font-family:var(--f-code)">'+(s.isNew||s.acc==null?'—':s.acc+'%')+'</span></div></td><td>'+status(s)+'</td></tr>'}).join('')+
+   '</tbody></table></div><p class="sub" style="font-size:12px">Імена та цифри умовні, для прототипу.</p>':
+   '<div class="empty">У класі ще немає учнів. Надішліть їм код <b style="font-family:var(--f-code)">'+c.code+'</b> або посилання.</div>')+
+  '</div>';
+}
+function worldView(){
+  var L=[['var(--c-intro)','camp','Узлісся','Вступ: рух, діалоги, інвентар','1 квест'],['var(--c-r1)','kurenivka','Долина Сигналів','Розділ 1 · Мій цифровий простір','5 квестів · бос Троянський Кінь'],['var(--c-r2)','torzhok','Ярмарок Вітрин','Розділ 2 · Візуальний контент','4 квести · бос Майстер Підробок'],['var(--c-r3)','scriptorium','Архіви Писарів','Розділ 3 · Дизайн документів','5 квестів · бос Чорнильний Хаос'],['var(--c-r4)','canyon','Каньйон Механізмів','Розділ 4 · Графічне програмування','8 квестів · бос Нескінченний Цикл'],['var(--c-r5)','theatre','Затока Менестрелів','Розділ 5 · Медіадизайн','5 квестів · бос Шумовий Дракон']];
+  return '<div class="sheet"><div class="sh-top"><div><h2>Світ завдань</h2><p class="sub">Провінції відповідають розділам підручника. Тут учитель призначатиме квести класам і створюватиме власні.</p></div><button class="btn gold sm" id="nq">+ Новий квест</button></div><div class="world">'+
+  L.map(function(l){return'<div class="land" style="--c:'+l[0]+'"><img src="art/places/'+l[1]+'.jpg" alt="" loading="lazy"><div><b>'+l[2]+'</b><span>'+l[3]+'</span><span>'+l[4]+'</span></div></div>'}).join('')+'</div></div>';
+}
+function bindTeacher(){
+  var $=function(id){return document.getElementById(id)};
+  $('out').onclick=logout;
+  $('n-cl').onclick=function(){state.ttab='classes';renderTeacher()};
+  $('n-w').onclick=function(){state.ttab='world';renderTeacher()};
+  if($('nq'))$('nq').onclick=function(){toast('Конструктор квестів буде наступним етапом')};
+  if($('new'))$('new').onclick=function(){state.creating=true;state.created=null;renderTeacher();$('nc-name').focus()};
+  if($('cancel'))$('cancel').onclick=function(){state.creating=false;renderTeacher()};
+  if($('nf'))$('nf').onsubmit=function(e){e.preventDefault();var g=+$('nc-grade').value,n=$('nc-name').value.trim();
+    if(!n){$('e-nc').textContent='Вкажіть назву класу, наприклад 8-А.';return;}
+    if(state.classes.some(function(c){return c.name.toLowerCase()===n.toLowerCase()})){$('e-nc').textContent='Клас з такою назвою вже є.';return;}
+    var cols=['var(--c-r1)','var(--c-r2)','var(--c-r3)','var(--c-r4)'];
+    var c={id:Date.now(),name:n,grade:g,code:genCode(),color:cols[state.classes.length%4],students:[]};
+    state.classes.push(c);saveClasses();state.created=c;state.creating=false;renderTeacher();};
+  if($('back'))$('back').onclick=function(){state.openClass=null;renderTeacher()};
+  if($('regen'))$('regen').onclick=function(e){e.stopPropagation();var c=state.classes.filter(function(x){return x.id===+this.dataset.id}.bind(this))[0];c.code=genCode();saveClasses();toast('Новий код: '+c.code+'. Старий більше не працює.');renderTeacher();};
+  document.querySelectorAll('[data-open]').forEach(function(d){var go=function(){state.openClass=+d.dataset.open;state.created=null;renderTeacher()};d.onclick=go;d.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});
+  document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(e){e.stopPropagation();copy(b.dataset.copy,b)}});
+}
+
+/* ============ HERO MAKER ============ */
+var STYLE_EN='Cossack Chronicle style: semi-realistic painted 3D render like cinematic medieval game key art, Eastern European world of the Ukrainian Cossack era (whitewashed thatched houses, windmills, wattle fences, sunflowers, oak and birch forests, rolling steppe hills, stone watchtowers), people with believable faces and real proportions, embroidered linen shirts with red and black geometric patterns, wool cloaks, worn leather belts and satchels, forged steel and brass, warm golden-hour or firelight with soft volumetric haze, rich but muted earthy palette (ochre, moss green, slate blue, oxblood, worn steel, warm gold), highly detailed fabric, wood and metal textures, painterly finish, slightly low heroic camera angle, made for a teen audience 13-15, no text, no logos';
+var HAIR={m:[['Кучері','messy curly dark brown hair'],['Коротке','short straight light brown hair'],['Довге','shoulder-length straight black hair tied back with a leather cord']],
+          f:[['Коса','a long dark brown braid over one shoulder'],['Розпущене','loose wavy chestnut hair to the shoulders'],['Пучок','hair gathered in a high bun with loose strands']]};
+var SKIN=[['Світла','#e6c3a0','fair skin with light freckles'],['Смаглява','#c4936a','olive tan skin'],['Темна','#7e553a','dark brown skin']];
+var CLOTH=[['Синій льон','#3f5466'],['Мох','#56653a'],['Волове вино','#6e2424'],['Вохра','#a8823e']];
+var PORTRAITS={};['m','f'].forEach(function(x){for(var a=0;a<3;a++)for(var b=0;b<3;b++)for(var c=0;c<4;c++){var k=x+'-'+a+'-'+b+'-'+c;PORTRAITS[k]='art/heroes/'+k+'.jpg';}});
+var CLOTH_EN=['dark blue','moss green','deep oxblood red','ochre yellow'];
+state.hero={sex:'m',hair:0,skin:0,cloth:0,name:''};
+function heroKey(h){return h.sex+'-'+h.hair+'-'+h.skin+'-'+h.cloth;}
+function heroPrompt(h){return 'Waist-up portrait of a 14-year-old '+(h.sex==='m'?'boy':'girl')+' apprentice traveller, '+HAIR[h.sex][h.hair][1]+', '+SKIN[h.skin][2]+', curious determined expression looking into the distance, simple '+CLOTH_EN[h.cloth]+' linen tunic with a red and black embroidered Ukrainian collar, brown wool travel cloak with a round bronze brooch, leather belt with a satchel, rolled bedroll on the back, wooden walking staff, standing under an oak at the forest edge at sunrise, Ukrainian village with whitewashed thatched houses and a windmill on a hill in the soft-focus background, '+STYLE_EN+' --ar 3:4';}
+function seg(id,list,cur){return '<div class="seg" role="radiogroup">'+list.map(function(x,i){return '<button type="button" role="radio" data-'+id+'="'+i+'" aria-checked="'+(i===cur)+'">'+x+'</button>';}).join('')+'</div>';}
+function renderMaker(){var h=state.hero,src=PORTRAITS[heroKey(h)];
+  var sexLabel=h.sex==='m'?'Учень':'Учениця';
+  app.innerHTML='<div class="make">'+
+  '<div class="portrait" style="--cloth:'+CLOTH[h.cloth][1]+'">'+(src?'<img src="'+src+'" alt="Портрет героя">':
+    '<div class="missing"><svg><use href="#ic-sil"/></svg><p>Портрета для цього поєднання ще немає. Згенеруй його за промптом праворуч і поклади у файл <span class="mono">art/heroes/'+heroKey(h)+'.jpg</span>.</p></div>')+
+   '<span class="band" aria-hidden="true"></span><div class="plate"><b>'+(h.name?esc(h.name):'Без імені')+'</b><span>'+sexLabel+' з Узлісся · '+esc(state.joined?'клас '+state.joined.name:'мандрівник')+'</span></div></div>'+
+  '<form class="opts" id="mk" novalidate><div><h1>Створи свого героя</h1><p class="lead">Так тебе бачитимуть мешканці королівства. Вигляд можна змінити пізніше в таверні.</p></div>'+
+   '<div class="opt field"><label for="h-name">Ім’я героя</label><input type="text" id="h-name" maxlength="16" autocomplete="off" placeholder="Наприклад, Тиміш" value="'+esc(h.name)+'"><span class="err" id="e-hn"></span></div>'+
+   '<div class="opt"><span>Стать</span>'+seg('sex',['Хлопець','Дівчина'],h.sex==='m'?0:1)+'</div>'+
+   '<div class="opt"><span>Зачіска</span>'+seg('hair',HAIR[h.sex].map(function(x){return x[0]}),h.hair)+'</div>'+
+   '<div class="opt"><span>Колір шкіри</span><div class="sw" role="radiogroup">'+SKIN.map(function(s,i){return '<button type="button" role="radio" data-skin="'+i+'" aria-checked="'+(i===h.skin)+'"><i style="--c:'+s[1]+'"></i>'+s[0]+'</button>';}).join('')+'</div></div>'+
+   '<div class="opt"><span>Колір одягу</span><div class="sw" role="radiogroup">'+CLOTH.map(function(s,i){return '<button type="button" role="radio" data-cloth="'+i+'" aria-checked="'+(i===h.cloth)+'"><i style="--c:'+s[1]+'"></i>'+s[0]+'</button>';}).join('')+'</div></div>'+
+   (src?'':'<div class="promptbox"><div class="row"><b style="color:var(--gold-hi)">Промпт для цього портрета</b><button type="button" class="copy" id="cp">Копіювати</button></div><code id="pt">'+esc(heroPrompt(h))+'</code></div>')+
+   '<div class="actions"><button type="submit" class="btn gold">Вирушити в табір</button><button type="button" class="btn plain" id="rand">Випадково</button></div>'+
+  '</form></div>';
+  var $=function(id){return document.getElementById(id)};
+  $('h-name').oninput=function(){h.name=this.value.trim();document.querySelector('.plate b').textContent=h.name||'Без імені';};
+  document.querySelectorAll('[data-sex]').forEach(function(b){b.onclick=function(){h.sex=b.dataset.sex==='0'?'m':'f';h.hair=0;renderMaker();}});
+  ['hair','skin','cloth'].forEach(function(k){document.querySelectorAll('[data-'+k+']').forEach(function(b){b.onclick=function(){h[k]=+b.dataset[k];renderMaker();}})});
+  $('rand').onclick=function(){h.sex=Math.random()<.5?'m':'f';h.hair=Math.floor(Math.random()*3);h.skin=Math.floor(Math.random()*3);h.cloth=Math.floor(Math.random()*4);renderMaker();};
+  if($('cp'))$('cp').onclick=function(){var t=$('pt').textContent;try{navigator.clipboard.writeText(t).then(function(){toast('Промпт скопійовано')},function(){sel($('cp'))});}catch(e){sel($('cp'))}};
+  $('mk').onsubmit=function(e){e.preventDefault();var n=h.name;
+    if(n.length<2){window.CKS&&CKS('ui-error',.5);$('e-hn').textContent='Дай героєві ім’я: від 2 до 16 літер.';$('h-name').setAttribute('aria-invalid','true');$('h-name').focus();return;}
+    state.user.hero=Object.assign({},h);CK.put(state.user);window.CKS&&CKS('gate-sign');state.making=false;state.heroDone=true;render();};
+}
+function renderReady(){var h=state.hero,src=PORTRAITS[heroKey(h)];
+  app.innerHTML='<div class="gate ready">'+logo+'<div class="card"><span class="seal">✦</span><div class="joined"><h2>'+esc(h.name)+' вирушає в дорогу</h2><p class="sub">'+(h.sex==='m'?'Учень':'Учениця')+' · '+HAIR[h.sex][h.hair][0].toLowerCase()+' · шкіра '+SKIN[h.skin][0].toLowerCase()+' · одяг «'+CLOTH[h.cloth][0]+'»</p>'+
+  '<p class="sub">Попереду табір на узліссі. Вогнище ледь жевріє, а Ганна вже чекає на допомогу.</p></div><button class="btn gold" id="camp">На мапу королівства</button><div class="row"><button type="button" class="link" id="redo">Змінити героя</button><button type="button" class="link" id="out">Вийти</button></div></div></div>';
+  document.getElementById('camp').onclick=function(){location.href='map.html'};
+  document.getElementById('redo').onclick=function(){state.heroDone=false;state.making=true;render();};
+  document.getElementById('out').onclick=function(){state.heroDone=false;state.making=false;logout();};
+}
+function render(){
+  document.body.classList.toggle('cab-on',!!(state.user&&state.user.role==='teacher'));
+  document.body.classList.toggle('make-on',!!state.making);
+  if(state.user&&state.making)return renderMaker();
+  if(state.user&&state.heroDone)return renderReady();
+  if(!state.user)return renderAuth();
+  if(state.user.role==='teacher')return renderTeacher();
+  if(state.joined)return renderJoined();
+  return renderCode();
+}
+if(location.hash==='#hero'){state.user={email:'olesia@school.ua',role:'student',name:'Олеся'};state.joined=state.classes[0];state.making=true;}
+window.addEventListener('hashchange',function(){var m=(location.hash||'').match(/^#join-([A-Za-z0-9]{8})$/);if(m){pre=m[1].toUpperCase();if(!state.user){state.role='student';}render();}});
+(function(){var me=CK.me();if(me&&location.hash!=='#hero'&&!/^#join-/.test(location.hash)){login(me);return;}render();})();
+})();
+
+</script>
+<script src="audio.js"></script>
+<script>if(window.CKA){var _m=function(){var mk=document.getElementById('mk');CKA.music(mk?'m02-hero':'m01-gate');if(mk)CKA.vo('intro/n02-hero',{once:1});else if(document.getElementById('authForm'))CKA.vo('intro/n01-gate',{once:1});};_m();CKA.amb('a01-gate',.6);new MutationObserver(_m).observe(document.getElementById('app'),{childList:true,subtree:true});}</script>
+<script>if('serviceWorker' in navigator&&location.protocol!=='file:')addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});</script><button type="button" id="ckInstall" hidden style="position:fixed;left:max(12px,env(safe-area-inset-left,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:40;font:700 14px/1 'Alegreya Sans',sans-serif;padding:10px 14px;border-radius:3px;cursor:pointer;background:rgba(18,16,13,.88);color:#ecd39c;border:1px solid rgba(201,164,92,.7)">Встановити гру</button>
+<script>(function(){var ev=null,b=document.getElementById('ckInstall');addEventListener('beforeinstallprompt',function(e){e.preventDefault();ev=e;b.hidden=false;});b.onclick=function(){if(!ev)return;ev.prompt();ev.userChoice.then(function(){ev=null;b.hidden=true;});};addEventListener('appinstalled',function(){b.hidden=true;});})();</script>

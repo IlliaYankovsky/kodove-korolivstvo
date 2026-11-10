@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12100d"><link rel="icon" href="icons/favicon.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вісті для кожної хати</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+SC:wght@600;700&family=Cormorant+Garamond:ital,wght@0,600;0,700;1,600&family=Alegreya+Sans:wght@400;500;700;800&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* «Козацька хроніка». Куренівка at golden hour: painted canvas village, HUD on dark steel panels, Хроніка on parchment. */
+
+/* «Козацька хроніка». The camp is a painted canvas lit by the fire; HUD and dialogues sit on dark steel panels with a gold rule. Single dark theme by choice: it is a night scene. */
+:root{
+  --bg:#12100d; --panel:#1b1814; --panel-2:#241f19; --panel-3:#2f2820; --line:#3d342a; --line-hi:#5a4b38;
+  --gold:#c9a45c; --gold-hi:#ecd39c; --gold-deep:#9a7a3e;
+  --text:#ede5d5; --muted:#b4a78f; --faint:#857a66;
+  --ok:#6f9a4a; --bad:#c0543e; --seal:#7e2a2a;
+  --f-title:"Cormorant SC","Cormorant Garamond",Georgia,serif;
+  --f-story:"Cormorant Garamond",Georgia,serif;
+  --f-ui:"Alegreya Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-code:"JetBrains Mono",ui-monospace,Consolas,monospace;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--f-ui);font-size:16px;line-height:1.45;overflow:hidden}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--gold-hi);outline-offset:2px}
+.btn{font-family:var(--f-ui);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--gold);border-radius:3px;padding:12px 18px;cursor:pointer;transition:filter .12s,transform .08s;text-align:center}
+.btn:active{transform:translateY(1px)}
+.btn.gold{background:linear-gradient(180deg,#dcbc78,#b08a46);color:#1a130b;box-shadow:inset 0 1px 0 rgba(255,240,200,.6),0 6px 16px rgba(0,0,0,.45)}
+.btn.gold:hover{filter:brightness(1.07)}
+.btn.plain{background:rgba(18,16,13,.4);color:var(--gold-hi)}
+.btn.plain:hover{background:rgba(201,164,92,.12)}
+.btn.sm{font-size:12.5px;padding:8px 12px}
+.panel{position:relative;background:linear-gradient(180deg,rgba(36,31,25,.95),rgba(24,21,17,.96));border:1px solid var(--gold-deep);border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.6),0 18px 40px rgba(0,0,0,.6)}
+.panel::before{content:"";position:absolute;inset:5px;border:1px solid rgba(201,164,92,.18);border-radius:2px;pointer-events:none}
+.eyebrow{font-size:11.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);font-weight:700}
+
+/* ===== intro & end cards ===== */
+.scr{position:fixed;inset:0}
+.cover{display:grid;place-items:center;overflow:auto;padding-block:28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.cover .bgimg{position:fixed;inset:-20px;background:var(--bg) url(art/scenes/kurenivka.jpg) center/cover;filter:blur(6px) brightness(.45) saturate(.9);pointer-events:none}
+.story{position:relative;width:100%;max-width:560px;padding:0 0 22px;overflow:hidden;display:grid;gap:14px}
+.story .banner{display:block;width:100%;aspect-ratio:764/200;object-fit:cover;border-bottom:1px solid var(--gold-deep)}
+.story .in{padding:0 26px;display:grid;gap:12px}
+.story h1{margin:0;font-family:var(--f-title);font-weight:700;font-size:clamp(34px,6vw,46px);line-height:1;color:var(--gold-hi);text-wrap:balance}
+.story p{margin:0;font-family:var(--f-story);font-weight:600;font-size:19px;line-height:1.4;color:#ddd2bd}
+.story .rule{height:1px;background:linear-gradient(90deg,transparent,var(--gold-deep),transparent)}
+.who-row{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center}
+.who-row img{width:64px;height:80px;object-fit:cover;object-position:50% 18%;border:1px solid var(--gold-deep);border-radius:2px}
+.who-row b{display:block;font-family:var(--f-title);font-size:22px;color:var(--gold-hi);line-height:1.1}
+.who-row small{color:var(--muted);font-size:14px}
+.how{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.how div{border:1px solid var(--line);background:rgba(15,13,11,.6);border-radius:3px;padding:8px 10px;font-size:13.5px;color:var(--muted);line-height:1.3}
+.how b{display:block;color:var(--text);font-size:14px}
+.story .acts{display:flex;gap:10px;flex-wrap:wrap}
+.story .acts .gold{flex:1}
+.rewards{display:flex;gap:8px;flex-wrap:wrap}
+.rewards span{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-hi);background:rgba(15,13,11,.6);border-radius:3px;padding:5px 10px 5px 5px;font-weight:700;font-size:14px}
+.rewards img{width:30px;height:30px;object-fit:cover;border-radius:2px}
+.rewards .xp{font-family:var(--f-code);color:var(--gold-hi);padding-left:10px}
+@media (max-width:520px){.story .in{padding:0 18px}.how{grid-template-columns:1fr}.story p{font-size:18px}}
+
+/* ===== camp ===== */
+#game{background:#07090a}
+#cv{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:pointer}
+.hud-top{position:absolute;top:calc(12px + env(safe-area-inset-top,0px));left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));display:flex;justify-content:space-between;gap:10px;pointer-events:none;align-items:flex-start}
+.quest{pointer-events:auto;padding:12px 16px 13px;max-width:330px;display:grid;gap:5px}
+.quest b{font-family:var(--f-title);font-weight:700;font-size:21px;line-height:1.1;color:var(--gold-hi)}
+.quest span{font-size:14px;color:var(--muted)}
+.notches{display:flex;gap:3px;margin-top:3px}
+.notches i{flex:1;height:6px;background:#0f0d0b;border:1px solid var(--line-hi)}
+.notches i.on{background:linear-gradient(180deg,#e2b766,#a8742e);border-color:#c9a45c}
+.chip{pointer-events:auto;display:flex;gap:10px;align-items:center;padding:5px 12px 5px 5px}
+.chip img{width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:50% 20%;border:1px solid var(--gold)}
+.chip b{font-family:var(--f-title);font-size:18px;color:var(--gold-hi);line-height:1}
+.chip small{display:block;color:var(--muted);font-size:12px}
+.inv{position:absolute;bottom:calc(14px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:flex-end;padding:8px;background:rgba(18,16,13,.82);border:1px solid var(--gold-deep);border-radius:4px}
+.slot{position:relative;width:66px;height:66px;border-radius:3px;background:#0f0d0b;border:1px solid var(--line-hi);display:grid;place-items:center;cursor:pointer;padding:0;color:var(--text);overflow:hidden}
+.slot img{width:100%;height:100%;object-fit:cover}
+.slot .n{position:absolute;right:3px;bottom:1px;font-family:var(--f-code);font-weight:700;font-size:14px;color:#fff;text-shadow:0 1px 2px #000,0 0 6px #000}
+.slot[aria-pressed="true"]{border-color:var(--gold-hi);box-shadow:0 0 0 2px var(--gold)}
+.slot.empty{cursor:default}
+.slot.lock{cursor:default;border-style:dashed;opacity:.5;display:grid;place-items:center;font-size:11px;color:var(--faint);letter-spacing:.08em;text-transform:uppercase}
+.slot.lock svg{width:20px;height:20px;stroke:var(--faint)}
+.slot.flash{animation:flash .5s}
+@keyframes flash{50%{border-color:var(--bad);box-shadow:0 0 0 3px var(--bad)}}
+.sep{width:1px;align-self:stretch;background:var(--line);margin:0 2px}
+.imenu{position:absolute;bottom:calc(108px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);padding:14px 16px;display:grid;gap:8px;width:min(320px,calc(100% - 32px));text-align:center}
+.imenu b{font-family:var(--f-title);font-size:21px;color:var(--gold-hi);line-height:1.1}
+.imenu p{margin:0;font-size:14.5px;color:var(--muted)}
+.imenu .row{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.dlg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom,0px));width:min(760px,calc(100% - 24px));display:grid;grid-template-columns:132px 1fr;z-index:5;overflow:hidden}
+.dlg .pic{position:relative;border-right:1px solid var(--gold-deep);background:#0f0d0b}
+.dlg .pic img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 12%}
+.dlg .body{padding:16px 20px 12px;display:grid;gap:8px;grid-template-rows:auto 1fr auto;height:214px}
+.dlg p{overflow-y:auto;min-height:0}
+.dlg .nm{font-family:var(--f-title);font-weight:700;font-size:22px;color:var(--gold-hi);line-height:1}
+.dlg .nm small{font-family:var(--f-ui);font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);margin-left:8px;font-weight:700}
+.dlg p{margin:0;font-family:var(--f-story);font-weight:600;font-size:clamp(18px,2.2vw,21px);line-height:1.38;color:#e8dfcc}
+.dlg .acts{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:nowrap;min-height:38px}
+.dlg .next{font:inherit;font-weight:700;background:none;border:0;color:var(--gold);cursor:pointer;font-size:14px;letter-spacing:.12em;text-transform:uppercase;padding:6px 4px}
+.dlg .next:hover{color:var(--gold-hi)}
+.dlg.hero .nm{color:#d9cdb6}
+.toast{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:rgba(18,16,13,.94);border:1px solid var(--gold-deep);border-radius:3px;padding:8px 16px;font-weight:700;font-size:14.5px;max-width:min(420px,calc(100% - 32px));text-align:center;z-index:6;pointer-events:none;box-shadow:0 8px 20px rgba(0,0,0,.5)}
+.end{position:absolute;inset:0;display:grid;place-items:center;background:rgba(7,9,10,.72);z-index:8;overflow:auto;padding-block:20px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+@media (min-width:900px){.toast{top:calc(20px + env(safe-area-inset-top,0px))}}
+@media (max-width:899px){.toast{top:auto;bottom:calc(110px + env(safe-area-inset-bottom,0px))}}
+@media (max-width:620px){
+  .quest{max-width:62vw;padding:9px 12px}.quest b{font-size:18px}.quest span{font-size:13px}
+  .chip{padding:4px}.chip div{display:none}.chip img{width:36px;height:36px}
+  .slot{width:54px;height:54px}.inv{gap:6px;padding:6px}
+  .dlg{grid-template-columns:84px 1fr}.dlg .body{padding:12px 14px 10px;height:206px}
+  .imenu{bottom:calc(90px + env(safe-area-inset-bottom,0px))}
+  .toast{bottom:calc(92px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){.slot.flash{animation:none}}
+.slot:not(.empty):not(.lock):hover{border-color:var(--gold-hi);box-shadow:0 0 12px rgba(236,190,110,.55),inset 0 0 14px rgba(236,190,110,.22)}
+.slot:not(.empty):not(.lock):hover img{filter:brightness(1.2) saturate(1.1)}
+.slot img{transition:filter .15s}
+.tomap{position:fixed;left:12px;bottom:12px;z-index:30;padding:8px 12px;border-radius:4px;background:rgba(18,16,13,.82);border:1px solid rgba(201,164,92,.6);color:#ecd39c;text-decoration:none;font:700 14px 'Alegreya Sans',sans-serif}
+.tomap:hover{border-color:#ecd39c}
+body:has(#dlg:not([hidden])) .tomap,body:has(#end:not([hidden])) .tomap{display:none}
+
+.tomap{position:fixed;left:12px;bottom:12px;z-index:30;padding:8px 12px;border-radius:4px;background:rgba(18,16,13,.82);border:1px solid rgba(201,164,92,.6);color:#ecd39c;text-decoration:none;font:700 14px 'Alegreya Sans',sans-serif}
+.tomap:hover{border-color:#ecd39c}
+body:has(#dlg:not([hidden])) .tomap,body:has(#end:not([hidden])) .tomap,body:has(#book:not([hidden])) .tomap,body:has(#intro:not([hidden])) .tomap{display:none}
+
+.dlg.look .pic{background:radial-gradient(circle at 50% 45%,#3a3024,#14110d)}
+.dlg.look .pic img{object-fit:contain;object-position:50% 50%;padding:8px}
+.dlg .acts.ask{justify-content:flex-start;flex-wrap:wrap}
+.dlg .acts.ask .btn{text-transform:none;letter-spacing:.01em;font-size:14.5px;font-weight:700}
+.dlg .acts .hint{margin-left:auto}
+.dlg .acts.ask ~ *{display:none}
+.dlg .body.tall{height:auto;min-height:214px}
+.dlg .body.tall p{overflow:visible}
+.coins{display:flex;align-items:center;gap:6px;margin-top:2px;font-family:var(--f-code);font-weight:700;font-size:13px;color:var(--gold-hi)}
+.coins img{width:18px;height:18px;border-radius:50%;object-fit:cover;border:1px solid var(--gold-deep)}
+.chip .coins{margin-top:3px}
+@media (max-width:620px){.chip div{display:block}.chip div b,.chip div small{display:none}.chip .coins{margin:0}}
+.slot.chron{border-color:var(--gold-deep)}
+.slot.chron::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 1px rgba(236,211,156,.25)}
+.slot.new{animation:newi 1.4s 2}
+@keyframes newi{50%{box-shadow:0 0 0 3px var(--gold-hi),0 0 18px rgba(236,190,110,.7)}}
+/* Хроніка Книжника */
+.book{position:absolute;inset:0;z-index:9;display:grid;place-items:center;background:rgba(7,9,10,.7);padding:16px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.tome{position:relative;width:min(980px,100%);max-height:min(680px,calc(100dvh - 32px));display:grid;grid-template-columns:230px 1fr;grid-template-rows:minmax(0,1fr);background:#2a2017;border:1px solid var(--gold-deep);border-radius:6px;box-shadow:0 24px 60px rgba(0,0,0,.7);overflow:hidden}
+.toc{background:linear-gradient(180deg,#2f241a,#1f1812);border-right:1px solid var(--gold-deep);padding:16px 12px;display:flex;flex-direction:column;gap:6px;overflow:auto}
+.toc .eyebrow{padding:0 6px 6px}
+.toc h2{margin:0 6px 8px;font-family:var(--f-title);font-size:22px;line-height:1.05;color:var(--gold-hi)}
+.toc button{all:unset;cursor:pointer;display:grid;grid-template-columns:22px 1fr;gap:8px;align-items:center;padding:7px 8px;border-radius:3px;color:#d9ccb2;font-weight:700;font-size:14.5px;line-height:1.2}
+.toc button:hover{background:rgba(201,164,92,.12)}
+.toc button[aria-current="true"]{background:rgba(201,164,92,.2);color:var(--gold-hi)}
+.toc button:focus-visible{outline:2px solid var(--gold-hi)}
+.toc button i{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:11px;font-family:var(--f-code);background:#5e1a16;color:#f0d6b0;border:1px solid #9a3a2c}
+.toc button.read i{background:#3c4d2a;border-color:#6f9a4a}
+.toc button[disabled]{cursor:default;color:#7a6c58;opacity:.7}
+.toc button[disabled] i{background:#2a221a;border-color:#4a3e30;color:#7a6c58}
+.page,.toc{min-height:0}
+.page{scrollbar-width:thin;scrollbar-color:#8a5a2a rgba(110,80,40,.15);overscroll-behavior:contain}
+.page::-webkit-scrollbar{width:8px}.page::-webkit-scrollbar-thumb{background:#8a5a2a;border-radius:4px}
+.pagewrap{position:relative;min-height:0;display:flex;background:#e9dcbf radial-gradient(ellipse at 30% 20%,#f3e8cf,#e2d1ae 60%,#cdb68a)}
+.page{position:relative;flex:1;min-width:0;color:#2b2017;padding:26px 32px 22px;margin:9px 4px 9px 9px;overflow:auto;font-family:var(--f-story)}
+.pagewrap::after{content:"";position:absolute;inset:8px;border:1px solid rgba(110,80,40,.35);pointer-events:none;border-radius:2px}
+.page small{font-family:var(--f-ui);font-weight:800;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:#8a5a2a}
+.page h3{margin:4px 0 10px;font-family:var(--f-title);font-size:32px;line-height:1.02;color:#3a2412}
+.page p{margin:0 0 10px;font-weight:600;font-size:19px;line-height:1.42}
+.page b.t{color:#7a3d12;background:linear-gradient(transparent 62%,rgba(201,164,92,.45) 62%);font-weight:700}
+.page figure{margin:6px 0 12px}
+.page figure img{display:block;width:100%;max-height:300px;object-fit:contain;mix-blend-mode:multiply}
+.page figure.prop img{max-height:200px;mix-blend-mode:normal;filter:drop-shadow(0 6px 10px rgba(60,40,20,.35))}
+.page figcaption{font-family:var(--f-story);font-style:italic;font-size:16px;color:#6a4e30;text-align:center;margin-top:4px}
+.page .note{border-left:3px solid #8a5a2a;padding:4px 0 4px 12px;font-style:italic;color:#5a3d22}
+.page .note b{font-style:normal;font-family:var(--f-ui);font-size:12px;letter-spacing:.14em;text-transform:uppercase;display:block;color:#8a5a2a}
+.page .glos{display:grid;gap:4px;margin:4px 0 12px;font-family:var(--f-ui);font-size:15.5px}
+.page .glos div{display:grid;grid-template-columns:120px 1fr;gap:10px}
+.page .glos dt{font-weight:800;color:#7a3d12}
+.page .glos dd{margin:0}
+.page .readseal{position:absolute;right:70px;top:16px;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#b8473c,#5e1a16);color:#f2d9b5;display:grid;place-items:center;font:800 9px/1.1 var(--f-ui);letter-spacing:.08em;text-transform:uppercase;text-align:center;transform:rotate(-12deg);box-shadow:0 3px 8px rgba(60,20,10,.4)}
+.book .close{position:absolute;right:10px;top:10px;z-index:2;width:38px;height:38px;border-radius:50%;border:1px solid #8a5a2a;background:rgba(233,220,191,.92);color:#3a2412;font-size:22px;line-height:1;cursor:pointer}
+.book .back{margin-top:6px}
+@media (max-width:760px){.tome{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.toc{flex-direction:row;overflow-x:auto;padding:10px;border-right:0;border-bottom:1px solid var(--gold-deep)}.toc .eyebrow,.toc h2{display:none}.toc button{grid-template-columns:20px auto;white-space:nowrap;font-size:13.5px}.page{padding:16px 12px;margin:9px 4px 9px 9px}.page h3{font-size:26px}.page p{font-size:18px}.page .readseal{width:46px;height:46px;font-size:8px;right:58px;top:10px}.page .glos div{grid-template-columns:96px 1fr}}
+.wbar{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:7;background:rgba(18,16,13,.95);border:1px solid var(--gold-deep);border-radius:4px;padding:10px 16px;max-width:min(520px,calc(100% - 24px));text-align:center;box-shadow:0 8px 22px rgba(0,0,0,.55)}
+body.wiring .hud-top,body.wiring .inv{visibility:hidden}
+@media (max-width:760px){.wbar{bottom:auto;top:calc(12px + env(safe-area-inset-top,0px))}}
+.wbar b{display:block;color:#ecd39c;font-size:15px;margin-bottom:3px}.wbar span{display:block;font-size:14px;line-height:1.35}.wbar i{display:block;font-style:normal;color:#e9a47a;font-size:13.5px;margin-top:5px}
+.wifi{position:absolute;inset:0;z-index:8;display:grid;place-items:center;background:rgba(7,9,10,.62);padding:14px}
+.wifi[hidden]{display:none}
+.wbox{width:min(560px,100%);max-height:calc(100% - 8px);overflow:auto;padding:18px 20px 16px}
+.wbox h2{margin:0 0 2px;font-family:var(--f-story);color:#ecd39c;font-size:21px}.wbox .sub{margin:0 0 12px;font-size:13.5px;opacity:.8}
+.wf{border-top:1px solid rgba(201,164,92,.25);padding:10px 0 8px}.wf>b{display:block;font-size:14.5px;color:#ecd39c;margin-bottom:6px}.wf>small{display:block;font-size:12.5px;opacity:.75;margin-top:4px}
+.wopts{display:flex;flex-wrap:wrap;gap:6px}.wopts label{display:flex;align-items:center;gap:6px;border:1px solid rgba(201,164,92,.45);border-radius:3px;padding:7px 11px;cursor:pointer;font-size:14px}
+.wopts label:has(input:checked){background:rgba(201,164,92,.18);border-color:#ecd39c}.wopts input{accent-color:#c9a45c;margin:0}
+.wrow{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}.wrow label{font-size:13.5px}
+.wbox input[type=text]{width:100%;box-sizing:border-box;background:#14110d;border:1px solid rgba(201,164,92,.5);border-radius:3px;color:#f3e6c8;font:inherit;font-size:15px;padding:7px 9px}
+.wbox input[type=text]:focus{outline:2px solid #ecd39c;outline-offset:1px}
+.meter{height:6px;border-radius:3px;background:#2a231b;margin-top:6px;overflow:hidden}.meter i{display:block;height:100%;width:0;transition:width .2s,background .2s}
+.werr{color:#f0a07a;font-size:13px;margin-top:5px;line-height:1.35}.werr:empty{display:none}.wf.bad>b{color:#f0a07a}
+.wbox{position:relative}.wstamp{position:absolute;left:50%;top:50%;width:150px;margin:-130px 0 0 -75px;pointer-events:none;filter:drop-shadow(0 10px 18px rgba(0,0,0,.6));animation:wst .9s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes wst{0%{transform:scale(2.6) rotate(-18deg);opacity:0}60%{opacity:1}100%{transform:scale(1) rotate(-6deg);opacity:1}}
+@media (prefers-reduced-motion:reduce){.wstamp{animation:none}}
+.wacts{display:flex;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-top:10px}
+</style>
+</head>
+<body>
+<!-- ===== INTRO ===== -->
+<section class="scr cover" id="intro" aria-label="Початок квесту">
+  <div class="bgimg"></div>
+  <div class="story panel">
+    <img class="banner" src="art/scenes/kurenivka.jpg" alt="Куренівка: майдан із криницею, корчма, кузня й кам'яна вістова вежа на пагорбі" style="object-position:50% 40%">
+    <div class="in">
+      <span class="eyebrow">Куренівка · Розділ 1 · Мережа</span>
+      <h1>Вісті для кожної хати</h1>
+      <p>Великим шляхом щодня біжать вісті з усього королівства. До Вістової вежі вони доходять, а далі ні до кого: у хатах тихо. Староста Мирон чекає на тебе біля своєї хати.</p>
+      <div class="rule"></div>
+      <div class="who-row"><img id="iPic" alt=""><div><b id="iName"></b><small id="iSub"></small></div></div>
+      <div class="how"><div><b>Іди й говори</b>Клацай по землі й по людях.</div><div><b>Хроніка</b>Книга внизу. Там відповіді на всі питання.</div><div><b>Біти</b>Відповів з першого разу: 8 біт, з другого: 4.</div></div>
+      <div class="acts"><button type="button" class="btn gold" id="iGo">Увійти в Куренівку</button></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== VILLAGE ===== -->
+<section class="scr" id="game" aria-label="Куренівка" hidden>
+  <canvas id="cv" aria-label="Село Куренівка. Клацай по землі, щоб іти, і по людях чи будівлях, щоб діяти."></canvas>
+  <div class="hud-top">
+    <div class="quest panel" id="quest" aria-live="polite"><span class="eyebrow">Вісті для кожної хати</span><b id="qTitle"></b><span id="qText"></span><div class="notches" id="qBar"></div></div>
+    <div class="chip panel"><img id="cPic" alt=""><div><b id="cName"></b><small>Куренівка</small><span class="coins"><img src="art/items/bit.jpg" alt=""><span id="cBits">0</span>&nbsp;біт</span></div></div>
+  </div>
+  <div class="inv" id="inv" aria-label="Предмети"></div>
+  <div class="imenu panel" id="imenu" hidden></div>
+  <div class="dlg panel" id="dlg" hidden role="dialog" aria-live="polite"><div class="pic"><img id="dPic" alt=""></div><div class="body"><div class="nm" id="dName"></div><p id="dText"></p><div class="acts" id="dActs"></div></div></div>
+  <div class="toast" id="toast" hidden role="status"></div>
+  <div class="wifi" id="wifi" hidden role="dialog" aria-modal="true" aria-labelledby="wfH"><div class="wbox panel">
+    <h2 id="wfH">Повітряна скринька корчми</h2><p class="sub">Налаштуй скриньку Ярини, щоб гості мали вісті, а чужі не підслухали.</p>
+    <div class="wf" id="f-band"><b>1. Частота</b><div class="wopts"><label><input type="radio" name="band" value="24">2,4 ГГц</label><label><input type="radio" name="band" value="5">5 ГГц</label></div>
+      <small>Гості сидять і в хаті, і на ґанку, аж до тину. Скринька стоїть за шинквасом.</small><div class="werr"></div></div>
+    <div class="wf" id="f-ssid"><b>2. Назва мережі</b><input type="text" id="wSsid" maxlength="32" placeholder="Наприклад: Корчма Ярини" autocomplete="off" spellcheck="false"><small>Цю назву побачить кожен, хто шукає повітря.</small><div class="werr"></div></div>
+    <div class="wf" id="f-admin"><b>3. Вхід до налаштувань скриньки</b><div class="wrow"><label for="wLogin">Логін</label><input type="text" id="wLogin" value="admin" autocomplete="off" spellcheck="false"><label for="wAdm">Пароль</label><input type="text" id="wAdm" value="admin" autocomplete="off" spellcheck="false"></div>
+      <small>Так скриньку прислали з ярмарку. Цей вхід знатиме лише Ярина.</small><div class="werr"></div></div>
+    <div class="wf" id="f-pass"><b>4. Пароль для гостей</b><input type="text" id="wPass" maxlength="40" autocomplete="off" spellcheck="false" placeholder="Придумай пароль"><div class="meter"><i id="wMeter"></i></div><small id="wMeterT">Довгий пароль з літер і цифр зламати найважче.</small><div class="werr"></div></div>
+    <div class="wf" id="f-sec"><b>5. Печатка (протокол захисту)</b><div class="wopts"><label><input type="radio" name="sec" value="wpa3">WPA3</label><label><input type="radio" name="sec" value="wpa2">WPA2</label><label><input type="radio" name="sec" value="wep">WEP</label><label><input type="radio" name="sec" value="open">Без печатки</label></div><div class="werr"></div></div>
+    <div class="wacts"><button type="button" class="btn sm plain" id="wBook">Звіритися з Хронікою</button><button type="button" class="btn sm gold" id="wSave">Зберегти налаштування</button></div>
+  </div></div>
+  <div class="wbar panel" id="wbar" hidden role="status" aria-live="polite"><b id="wTitle"></b><span id="wText"></span><i id="wHint" hidden></i></div>
+  <div class="book" id="book" hidden role="dialog" aria-label="Хроніка Книжника">
+    <div class="tome"><button type="button" class="close" id="bClose" aria-label="Закрити Хроніку">×</button>
+      <nav class="toc" id="toc"><span class="eyebrow">Хроніка Книжника</span><h2>Розділ 1. Мережа</h2></nav>
+      <div class="pagewrap"><article class="page" id="page"></article></div>
+    </div>
+  </div>
+  <div class="end" id="end" hidden>
+    <div class="story panel">
+      <img class="banner" src="art/chronicle/village-network.jpg" alt="Гравюра: від вежі до кожної хати тягнуться дроти" style="object-position:50% 50%;background:#e2d1ae">
+      <div class="in">
+        <span class="eyebrow">Квест виконано</span>
+        <h1>Вісті для кожної хати</h1>
+        <p id="endText"></p>
+        <div class="rewards" id="endRew"></div>
+        <div class="acts"><button type="button" class="btn gold" id="endGo">На мапу</button><button type="button" class="btn plain" id="endAgain">Пройти ще раз</button></div>
+      </div>
+    </div>
+  </div>
+</section>
+<a class="tomap" href="map.html">← Мапа</a>
+<script src="audio.js"></script>
+<script>if(window.CKA){CKA.music('m06-kurenivka');CKA.amb('a05-kurenivka',.7);addEventListener('DOMContentLoaded',function(){var i=document.getElementById('intro');if(i&&!i.hidden)CKA.vo('intro/n05-kurenivka',{once:1});});}</script>
+
+<script>
+(function(){
+"use strict";
+/* ================= hero & store ================= */
+var HAIR={m:['curly','short','long'],f:['braid','loose','bun']};
+var HAIRC={m:['#2e1f15','#6a4a2c','#151210'],f:['#33221a','#5e3420','#2a1d16']};
+var SKIN=['#e2bf9b','#c08f66','#7f5639'];
+var CLOTH=['#3f5466','#56653a','#6e2424','#a8823e'];
+var HAIRNAME={m:['кучері','коротке','довге'],f:['коса','розпущене','пучок']};
+var CK=(function(){var K='ck.v1';
+function load(){try{return JSON.parse(localStorage.getItem(K))||{}}catch(e){return {}}}
+function save(d){try{localStorage.setItem(K,JSON.stringify(d))}catch(e){}}
+return {get:function(){var d=load();d.users=d.users||{};return d;},save:save,
+ me:function(){var d=this.get();return d.session&&d.users[d.session]||null;},
+ put:function(u){var d=this.get();d.users[u.email]=u;d.session=u.email;save(d);}};})();
+var hero={sex:'m',hair:0,skin:0,cloth:0,name:'Тиміш'};
+(function(){var h=decodeURIComponent(location.hash.replace('#',''));var m=h.match(/([mf])-([0-2])-([0-2])-([0-3])/);
+  if(m){hero.sex=m[1];hero.hair=+m[2];hero.skin=+m[3];hero.cloth=+m[4];hero.name=hero.sex==='f'?'Олеся':'Тиміш';}})();
+(function(){var me=CK.me();if(me&&me.hero){['sex','hair','skin','cloth','name'].forEach(function(k){if(me.hero[k]!=null&&me.hero[k]!=='')hero[k]=me.hero[k];});}})();
+function heroKey(){return hero.sex+'-'+hero.hair+'-'+hero.skin+'-'+hero.cloth;}
+function heroPic(){return 'art/heroes/'+heroKey()+'.jpg';}
+function g(m,f){return hero.sex==='f'?f:m;}
+function heroLook(){return {sex:hero.sex,hair:HAIR[hero.sex][hero.hair],hairC:HAIRC[hero.sex][hero.hair],skin:SKIN[hero.skin],cloth:CLOTH[hero.cloth],cloak:'#5a3d26',kind:'hero'};}
+var KDONE=(function(){var me=CK.me();return !!(me&&me.progress&&me.progress.kur&&me.progress.kur.done);})();
+(function(){var p=document.getElementById('iPic');p.src=heroPic();p.alt='Портрет: '+hero.name;
+  document.getElementById('iName').textContent=hero.name;
+  document.getElementById('iSub').textContent=g('Учень','Учениця')+' з Узлісся · '+(KDONE?'квест уже пройдено':'перший квест розділу');
+  if(KDONE)document.getElementById('iGo').textContent='Пройти ще раз';})();
+
+/* ================= drawing helpers (shared with the camp) ================= */
+var PS=.78;
+function hx(h){if(h.charAt(0)==='r')return h.replace(/[^\d,]/g,'').split(',').slice(0,3).map(Number);h=h.replace('#','');return[parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)];}
+function mix(a,b,t){var A=hx(a),B=hx(b);return 'rgb('+A.map(function(v,i){return Math.round(v+(B[i]-v)*t)}).join(',')+')';}
+function rgba(h,a){var A=hx(h);return 'rgba('+A[0]+','+A[1]+','+A[2]+','+a+')';}
+function ell(g,x,y,rx,ry,rot){g.beginPath();g.ellipse(x,y,Math.max(.1,rx),Math.max(.1,ry),rot||0,0,Math.PI*2);}
+function limb(g,x1,y1,x2,y2,w,col){g.strokeStyle=col;g.lineWidth=w;g.lineCap='round';g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();}
+function axeAt(g,hx,hy,A){g.save();g.translate(hx,hy);g.rotate(A);
+  limb(g,-4,0,26,0,2.4,'#6a4a2c');limb(g,-4,-.5,26,-.5,.8,'#8f6a44');
+  var ax=g.createLinearGradient(20,-3,24,12);ax.addColorStop(0,'#5a5e64');ax.addColorStop(.6,'#9ba0a6');ax.addColorStop(1,'#d9dde0');g.fillStyle=ax;
+  g.beginPath();g.moveTo(20,-3.5);g.lineTo(27,-3.5);g.lineTo(27,1);g.quadraticCurveTo(30,6,29.5,11);g.quadraticCurveTo(23,12.5,16.5,10.5);g.quadraticCurveTo(20,6,20,1);g.closePath();g.fill();
+  g.fillStyle='#3a3d42';g.fillRect(21,-5.5,5.5,2.5);g.restore();}
+function hair(g,o){var hc=o.hairC,hd=mix(hc,'#000000',.4),hl=mix(hc,'#e8d0a0',.18);g.fillStyle=hc;
+  var cap=function(){g.beginPath();g.moveTo(-4.4,-64);g.quadraticCurveTo(-5,-74,2,-73.6);g.quadraticCurveTo(7.6,-73,7,-68);g.quadraticCurveTo(3,-70.5,0,-69);g.quadraticCurveTo(-1.6,-66,-4.4,-64);g.fill();};
+  switch(o.hair){
+    case 'curly':for(var i=0;i<9;i++){var a=-3.1+i*.38;g.fillStyle=i%2?hc:hd;ell(g,1.5+Math.cos(a)*5.2,-68.5+Math.sin(a)*4.6,2.6,2.4);g.fill();}g.fillStyle=hl;ell(g,1,-72.6,2,1.2);g.fill();break;
+    case 'short':cap();g.fillStyle=hl;ell(g,1,-72.6,2.6,.9);g.fill();break;
+    case 'long':cap();g.fillStyle=hd;g.beginPath();g.moveTo(-4.6,-66);g.quadraticCurveTo(-7,-60,-6,-54);g.lineTo(-3.4,-54);g.quadraticCurveTo(-3.6,-60,-2,-65);g.fill();g.fillStyle='#6a4a2c';g.fillRect(-6.4,-59,3.4,1.4);break;
+    case 'braid':cap();g.fillStyle=hd;for(var b=0;b<6;b++){ell(g,4+b*.3,-60+b*3.4,1.9,2);g.fill();}g.fillStyle='#8e1f1f';g.fillRect(3.2,-41.6,3,1.4);break;
+    case 'loose':cap();g.fillStyle=hc;g.beginPath();g.moveTo(-4.8,-68);g.quadraticCurveTo(-8,-60,-6,-55);g.quadraticCurveTo(-3,-57,-2,-55);g.quadraticCurveTo(-1,-60,-1,-65);g.fill();break;
+    case 'bun':cap();g.fillStyle=hd;ell(g,-2.6,-74.4,3.2,3);g.fill();g.fillStyle=hl;ell(g,-3.2,-75.4,1.2,.8);g.fill();break;
+    case 'scarf':g.fillStyle='#8e2a24';g.beginPath();g.moveTo(-5,-61);g.quadraticCurveTo(-6.6,-74,2,-74.2);g.quadraticCurveTo(8,-74,7.6,-67);g.quadraticCurveTo(4,-70,-.4,-68.6);g.quadraticCurveTo(-1.6,-64,-1.2,-60);g.closePath();g.fill();
+      g.fillStyle='#6e1f1a';g.beginPath();g.moveTo(-5,-62);g.lineTo(-9,-55);g.lineTo(-6,-55);g.lineTo(-3,-60);g.fill();g.fillStyle='#d8b060';for(var d=0;d<4;d++)ell(g,-3+d*2.4,-71.4+Math.abs(d-1.5)*.4,.6,.6),g.fill();break;}
+  if(o.beard){g.fillStyle=o.hairC;g.beginPath();g.moveTo(-1,-64);g.quadraticCurveTo(0,-57.5,4,-58);g.quadraticCurveTo(7.4,-59,6.8,-63);g.quadraticCurveTo(4,-62,-1,-64);g.fill();}}
+function drawPerson(g,x,y,o,t){
+  var sc=(o.big||1)*PS,ph=o.moving?Math.sin(t*10):0,bob=o.moving?Math.abs(Math.cos(t*10))*1.2:0;
+  g.save();g.translate(x,y);g.scale(sc,sc);
+  g.fillStyle='rgba(0,0,0,.38)';ell(g,2,1,15,4.5);g.fill();
+  g.translate(0,-bob);if(o.facing<0)g.scale(-1,1);
+  var skin=o.skin,skinD=mix(skin,'#1a0f08',.35),cl=o.cloth,clD=mix(cl,'#0b0806',.45),clL=mix(cl,'#f4ead6',.18);
+  var trou='#3a3128',boot='#22180f';
+  // cloak behind
+  if(o.cloak){var cg=g.createLinearGradient(-10,0,4,0);cg.addColorStop(0,mix(o.cloak,'#000000',.35));cg.addColorStop(1,o.cloak);g.fillStyle=cg;g.beginPath();g.moveTo(-6,-56);g.quadraticCurveTo(-15,-34,-14+ph*1.5,-18);g.lineTo(-2,-20);g.lineTo(4,-56);g.closePath();g.fill();
+    // bedroll
+    g.fillStyle='#6e6450';ell(g,-9,-55,7,4,.2);g.fill();g.fillStyle='#4a4234';ell(g,-14,-55,2.2,3.6);g.fill();}
+  // back arm (with the axe both hands go to the handle, drawn later)
+  if(!(o.tool==='axe'&&o.axeP!=null)){
+  var sw=o.swing||0,arm=o.moving?-ph*5:0;
+  limb(g,1,-52,-2+arm,-36,4.6,clD);limb(g,-2+arm,-36,-1+arm,-31,3.6,skinD);}
+  // legs / skirt
+  if(o.skirt){var sk=g.createLinearGradient(-9,0,9,0);sk.addColorStop(0,mix(o.skirt,'#000000',.3));sk.addColorStop(.6,o.skirt);sk.addColorStop(1,mix(o.skirt,'#000000',.45));g.fillStyle=sk;
+    g.beginPath();g.moveTo(-7,-36);g.lineTo(7,-36);g.quadraticCurveTo(11,-16,10+ph,-3);g.lineTo(-10+ph,-3);g.quadraticCurveTo(-10,-16,-7,-36);g.fill();
+    g.fillStyle='#c9a45c';g.fillRect(-10+ph,-7,20,1.6);g.fillStyle=boot;ell(g,-3+ph*2,-1.5,4.5,2.3);g.fill();ell(g,4-ph*2,-1.5,4.5,2.3);g.fill();
+    if(o.apron){g.fillStyle=o.apron;g.beginPath();g.moveTo(-1,-36);g.lineTo(8,-36);g.quadraticCurveTo(10,-20,9,-10);g.lineTo(0,-10);g.closePath();g.fill();g.fillStyle='#7e2a2a';g.fillRect(0,-13,9,1.4);}}
+  else{limb(g,-1,-34,-2-ph*5,-6,5.2,mix(trou,'#000000',.25));limb(g,-2-ph*5,-6,-2-ph*5,-2,4.6,boot);
+    limb(g,2,-34,3+ph*5,-6,5.4,trou);limb(g,3+ph*5,-6,3+ph*5,-2,4.8,boot);g.fillStyle=boot;ell(g,5+ph*5,-1.2,4.4,2);g.fill();}
+  // torso (tunic)
+  var tg=g.createLinearGradient(-8,0,9,0);tg.addColorStop(0,clD);tg.addColorStop(.55,cl);tg.addColorStop(1,clL);g.fillStyle=tg;
+  var hem=o.skirt?-34:-24;
+  g.beginPath();g.moveTo(-7,-57);g.quadraticCurveTo(0,-60,8,-57);g.lineTo(8,-40);g.quadraticCurveTo(9,-30,9,hem);g.lineTo(-8,hem);g.quadraticCurveTo(-8,-30,-7,-40);g.closePath();g.fill();
+  // embroidery: collar and placket
+  g.fillStyle='#8e1f1f';g.fillRect(-2,-58,8,2);g.fillRect(2,-56,2,9);g.fillStyle='#1b1410';for(var e=0;e<4;e++)g.fillRect(2.2,-55+e*2.2,1.4,1);
+  if(o.kind==='hanna'){g.fillStyle='#8e1f1f';g.fillRect(-7,-49,3,1.6);g.fillRect(6,-49,3,1.6);}
+  // belt & satchel
+  if(!o.skirt||o.kind==='hanna'){g.fillStyle='#2a1d12';g.fillRect(-8,-37,17,3);g.fillStyle='#b08a46';g.fillRect(2,-37,3,3);}
+  if(o.kind==='hero'){g.fillStyle='#5a4128';g.beginPath();g.moveTo(-9,-36);g.lineTo(-2,-36);g.lineTo(-3,-27);g.lineTo(-9,-28);g.closePath();g.fill();g.strokeStyle='#3a2a1a';g.lineWidth=1.2;g.beginPath();g.moveTo(-6,-36);g.lineTo(6,-57);g.stroke();}
+  if(o.beard){g.fillStyle='rgba(0,0,0,.18)';g.fillRect(-7,-46,15,2);}
+  // cloak front & brooch
+  if(o.cloak){g.fillStyle=o.cloak;g.beginPath();g.moveTo(-8,-58);g.quadraticCurveTo(0,-61,7,-58);g.lineTo(4,-51);g.lineTo(-8,-48);g.closePath();g.fill();g.fillStyle='#c79a4a';ell(g,4,-54,1.8,1.8);g.fill();}
+  // head
+  limb(g,1,-58,1.5,-61,3.6,skinD);
+  var hgr=g.createRadialGradient(2.5,-67,1,1,-66,7);hgr.addColorStop(0,mix(skin,'#ffffff',.12));hgr.addColorStop(1,skinD);g.fillStyle=hgr;ell(g,1.5,-66.5,5.2,6.2);g.fill();
+  g.fillStyle=skin;ell(g,6.3,-66,1.3,1.6);g.fill(); // nose
+  g.fillStyle='#1a120c';ell(g,4,-67.6,.75,.95);g.fill();
+  hair(g,o);
+  // front arm + tool
+  if(o.tool==='axe'&&o.axeP!=null){
+    var p=o.axeP,A;if(p<.62){var e=p/.62;e=e*e*(3-2*e);A=.9+(-2.4-.9)*e;}else{var e2=(p-.62)/.38;A=-2.4+3.3*e2*e2;}
+    var hx=2+Math.cos(A)*12,hy=-54+Math.sin(A)*12;
+    limb(g,-1,-54,hx,hy,4.3,clD);axeAt(g,hx,hy,A);limb(g,4,-54,hx,hy,4.6,cl);ell(g,hx,hy,2.2,2.2);g.fillStyle=skin;g.fill();
+  }else if(o.tool==='axe'){
+    var A2=-2.6+(o.moving?ph*.05:0),hx2=9,hy2=-41;
+    axeAt(g,hx2,hy2,A2);limb(g,5,-54,hx2,hy2,4.6,cl);g.fillStyle=skin;ell(g,hx2,hy2,2.2,2.2);g.fill();
+  }else{
+    g.save();g.translate(6,-53);g.rotate(o.moving?ph*.35:.12);limb(g,0,0,0,13,4.6,cl);limb(g,0,13,0,18,3.8,skin);
+    if(o.tool==='ladle'){g.save();g.translate(0,17);g.rotate(-.5);limb(g,0,-2,0,16,1.8,'#8a6440');g.fillStyle='#6a4a2c';ell(g,0,18,3.6,2.6);g.fill();g.restore();}
+    g.restore();}
+  g.restore();
+}
+
+/* ================= assets ================= */
+var W=1586,H=992;
+function img(src){var i=new Image();i.src=src;return i;}
+var bgImg=img('art/scenes/kurenivka.jpg');
+var SPR={"myron": {"n": 6, "cw": 104, "ch": 155}, "filip": {"n": 6, "cw": 115, "ch": 155}, "taras": {"n": 6, "cw": 131, "ch": 164}, "yaryna": {"n": 6, "cw": 115, "ch": 154}, "danylo": {"n": 6, "cw": 129, "ch": 156}, "phisher": {"n": 6, "cw": 143, "ch": 154}, "cat": {"n": 6, "cw": 155, "ch": 79}, "dog": {"n": 6, "cw": 239, "ch": 91}, "hen_b": {"n": 6, "cw": 65, "ch": 57}, "hen_w": {"n": 6, "cw": 67, "ch": 56}};
+SPR.hero_walk={n:6,cw:172,ch:254};SPR.fire_small={n:8,cw:115.125,ch:133};
+var IMG={hero_walk:img('art/sprites/hero-walk.png'),fire_small:img('art/sprites/fire-small.jpg')};
+Object.keys(SPR).forEach(function(k){if(!IMG[k])IMG[k]=img('art/sprites/kur/'+k+'.png');});
+var FG=[{"id": "tavern", "x": 867, "y": 328, "w": 532, "h": 294, "s": [[0, 16, 505], [16, 16, 509], [32, 16, 515], [48, 16, 520], [64, 16, 541], [80, 16, 572], [96, 16, 573], [112, 16, 575], [128, 16, 576], [144, 16, 565], [160, 16, 560], [176, 16, 566], [192, 16, 571], [208, 16, 576], [224, 16, 583], [240, 16, 587], [256, 16, 594], [272, 16, 596], [288, 16, 595], [304, 16, 601], [320, 16, 607], [336, 16, 612], [352, 16, 616], [368, 16, 621], [384, 16, 621], [400, 16, 621], [416, 16, 603], [432, 16, 594], [448, 16, 587], [464, 16, 584], [480, 16, 580], [496, 16, 582], [512, 16, 569], [528, 4, 538]]}, {"id": "huts", "x": 765, "y": 612, "w": 448, "h": 282, "s": [[0, 16, 839], [16, 16, 839], [32, 16, 844], [48, 16, 852], [64, 16, 860], [80, 16, 865], [96, 16, 871], [112, 16, 884], [128, 16, 883], [144, 16, 883], [160, 16, 881], [176, 16, 879], [192, 16, 880], [208, 16, 880], [224, 16, 880], [240, 16, 893], [256, 16, 889], [272, 16, 879], [288, 16, 870], [304, 16, 862], [320, 16, 858], [336, 16, 851], [352, 16, 849], [368, 16, 850], [384, 16, 848], [400, 16, 835], [416, 16, 822], [432, 16, 809]]}, {"id": "hutbl", "x": 213, "y": 482, "w": 391, "h": 293, "s": [[0, 16, 647], [16, 16, 655], [32, 16, 680], [48, 16, 690], [64, 16, 695], [80, 16, 702], [96, 16, 711], [112, 16, 719], [128, 16, 726], [144, 16, 731], [160, 16, 738], [176, 16, 753], [192, 16, 761], [208, 16, 763], [224, 16, 765], [240, 16, 774], [256, 16, 771], [272, 16, 764], [288, 16, 758], [304, 16, 748], [320, 16, 740], [336, 16, 729], [352, 16, 720], [368, 16, 699], [384, 7, 688]]}, {"id": "oak", "x": 0, "y": 556, "w": 345, "h": 436, "s": [[0, 16, 1100], [16, 16, 1100], [32, 16, 1100], [48, 16, 1100], [64, 16, 1100], [80, 16, 1100], [96, 16, 1100], [112, 16, 1100], [128, 16, 1100], [144, 16, 1100], [160, 16, 1100], [176, 16, 1100], [192, 16, 1100], [208, 16, 1100], [224, 16, 1100], [240, 16, 1100], [256, 16, 1100], [272, 16, 1100], [288, 16, 1100], [304, 16, 1100], [320, 16, 1100], [336, 9, 1100]]}, {"id": "rocks", "x": 250, "y": 874, "w": 125, "h": 88, "s": [[0, 16, 956], [16, 16, 958], [32, 16, 961], [48, 16, 957], [64, 16, 932], [80, 16, 922], [96, 16, 924], [112, 13, 925]]}, {"id": "granary", "x": 65, "y": 308, "w": 226, "h": 199, "s": [[0, 16, 548], [16, 16, 548], [32, 16, 548], [48, 16, 548], [64, 16, 548], [80, 16, 548], [96, 16, 548], [112, 16, 548], [128, 16, 548], [144, 16, 548], [160, 16, 548], [176, 16, 548], [192, 16, 548], [208, 16, 548], [224, 2, 548]]}];FG.forEach(function(o){o.im=img('art/scenes/kur/fg-'+o.id+'.png');});
+var PROP={};['switch','cable-coil','fiber-coil','wan-socket','wpa3-seal','house-dark','tower-fire','well-fg'].forEach(function(k){PROP[k]=img('art/scenes/kur/'+k+'.png');});
+var WALK={"poly": [[300, 452], [292, 410], [268, 365], [238, 322], [222, 290], [226, 262], [252, 236], [282, 214], [318, 212], [322, 226], [290, 246], [262, 268], [258, 290], [268, 318], [290, 350], [325, 395], [345, 440], [330, 440], [420, 446], [470, 432], [595, 422], [600, 338], [690, 330], [760, 322], [860, 312], [985, 308], [990, 330], [900, 395], [870, 420], [868, 545], [960, 590], [1100, 622], [1250, 648], [1330, 640], [1395, 560], [1425, 480], [1440, 440], [1560, 430], [1586, 560], [1586, 992], [1110, 992], [1150, 900], [1240, 790], [1340, 700], [1250, 688], [1150, 676], [1000, 650], [840, 648], [800, 690], [790, 770], [700, 790], [640, 830], [590, 992], [250, 992], [242, 870], [248, 785], [290, 748], [330, 748], [436, 800], [470, 790], [610, 710], [612, 600], [500, 565], [480, 520], [330, 505], [300, 480]], "obst": [[732, 512, 46, 18], [680, 526, 9, 5], [652, 525, 15, 7], [298, 905, 40, 13], [357, 920, 16, 9], [280, 954, 24, 8]]};
+
+/* ================= world data ================= */
+var TP={x:262,y:96};            // Вістова вежа: оглядовий майданчик
+var WP={x:1458,y:300};          // WAN-скринька на стовпі
+var HOUSES={
+  main:{at:[606,238],win:[[576,250],[616,250],[764,244],[804,244]],name:'хата старости'},
+  hutTop:{at:[432,318],win:[[430,330],[455,325]],name:'хата за криницею'},
+  forge:{at:[1062,236],win:[[1145,275]],name:'кузня'},
+  hutR:{at:[1318,298],win:[[1310,330],[1342,330]],name:'хата біля шляху'},
+  hutBL:{at:[338,548],win:[[290,632],[325,642],[410,650],[440,640]],name:'крайня хата'},
+  hutB:{at:[884,704],win:[[895,795],[1080,772]],name:'хата за корчмою'},
+  tavern:{at:[1150,330],win:[[1035,468],[1200,515],[1335,545]],name:'корчма'}};
+/* wires hang on wooden poles: POLE = ground base, the wire sits at the top of the post */
+var PH=70,POLE={hr:[1290,338],f:[992,326],m:[800,334],sq:[628,342],ht:[470,438],tw:[330,216],c:[618,616],b:[786,646]};
+var NODE={wan:{x:1456,y:300,n:'Скринька WAN'},tower:{x:296,y:152,n:'Вежа'},sw:{x:300,y:450,n:'Комутатор'},tavern:{x:1150,y:420,n:'Корчма'}};
+['main','hutTop','hutR','hutB','hutBL','forge'].forEach(function(k){var h=HOUSES[k];NODE[k]={x:h.at[0],y:h.at[1],n:h.name.charAt(0).toUpperCase()+h.name.slice(1)};});
+var ROUTE={fiber:['wan','hr','f','m','sq','ht','tw','tower'],up:['tower','tw','sw'],hutTop:['sw','ht','hutTop'],main:['sw','ht','sq','main'],hutB:['sw','ht','c','b','hutB'],
+  hutBL:['sw','hutBL'],forge:['sw','ht','sq','m','f','forge'],hutR:['sw','ht','sq','m','f','hr','hutR']};
+var LINKS={};Object.keys(ROUTE).forEach(function(k,i){LINKS[k]={k:k,kind:k==='fiber'?'fiber':'cable',t:0,on:false,house:HOUSES[k]?k:null,off:[-7,7,-3,3,-5,5,0,-1][i]};});
+/* sampled polyline of a link: spans sag between pole tops */
+function linkPts(L){if(L.pts)return L.pts;var R=ROUTE[L.k],ps=R.map(function(id){if(POLE[id])return{x:POLE[id][0]+L.off,y:POLE[id][1]-PH+2,pole:id};var n=NODE[id];return{x:n.x,y:n.y};});
+  var out=[],len=0,marks=[];for(var i=0;i<ps.length-1;i++){var a=ps[i],b=ps[i+1],d=Math.hypot(b.x-a.x,b.y-a.y),sag=4+d*.07,cx=(a.x+b.x)/2,cy=(a.y+b.y)/2+sag,n=Math.max(6,Math.round(d/10));
+    if(a.pole)marks.push({id:a.pole,at:len});for(var j=(i?1:0);j<=n;j++){var t=j/n,u=1-t,x=u*u*a.x+2*u*t*cx+t*t*b.x,y=u*u*a.y+2*u*t*cy+t*t*b.y;if(out.length){var q=out[out.length-1];len+=Math.hypot(x-q.x,y-q.y);}out.push({x:x,y:y,l:len});}}
+  L.pts=out;L.len=len;L.marks=marks;return out;}
+function ptAt(L,f){var P=linkPts(L),l=f*L.len;for(var i=1;i<P.length;i++)if(P[i].l>=l){var a=P[i-1],b=P[i],k=(l-a.l)/Math.max(.001,b.l-a.l);return{x:a.x+(b.x-a.x)*k,y:a.y+(b.y-a.y)*k};}return P[P.length-1];}
+function poleOn(id){for(var k in LINKS){var L=LINKS[k];if(!L.on||L.t<=0)continue;linkPts(L);for(var i=0;i<L.marks.length;i++)if(L.marks[i].id===id&&L.marks[i].at<=L.t*L.len+1)return true;}return false;}
+function drawPole(id){var x=POLE[id][0],y=POLE[id][1];shadow(x+3,y,9,.3);c.fillStyle='#2e1e10';c.fillRect(x-2.6,y-PH,5.2,PH);c.fillStyle='#7d5a37';c.fillRect(x-2.6,y-PH,1.6,PH);
+  c.fillStyle='#3a2615';c.fillRect(x-11,y-PH+4,22,3.2);c.fillStyle='#8a6440';c.fillRect(x-11,y-PH+4,22,1);c.fillStyle='#e8dcc4';[-8,-3,3,8].forEach(function(d){c.beginPath();c.arc(x+d,y-PH+3,1.5,0,Math.PI*2);c.fill();});}
+var LIT={};          // house -> 0..1 window glow
+var FIRE=0;          // tower brazier 0..1
+var AIR=0;           // Wi-Fi rings strength
+var SWITCH_ON=false,SEAL_ON=false,SEALT=0,BROKEN=true;
+
+function npc(id,x,y,face,sc,name,role){return {id:id,x:x,y:y,home:{x:x,y:y},facing:face,sc:sc,name:name,role:role,pic:'art/npcs/'+id+'.jpg',tx:null,ty:null,moving:false,talk:0,idle:Math.random()*3,pose:0};}
+var NPC={
+  myron:npc('myron',700,374,1,.4,'Мирон','староста'),
+  filip:npc('filip',806,524,-1,.4,'Філип','книжник'),
+  danylo:npc('danylo',352,474,1,.41,'Данило','вартовий'),
+  taras:npc('taras',968,322,-1,.42,'Тарас','коваль'),
+  yaryna:npc('yaryna',992,610,-1,.39,'Ярина','корчмарка')};
+var GOB=npc('phisher',1560,930,-1,.3,'Гонець','каже, що від старости');GOB.pic='art/mobs/phisher.jpg';GOB.hidden=true;
+var WHO={hero:null};Object.keys(NPC).forEach(function(k){var n=NPC[k];WHO[k]={n:n.name,r:n.role,p:n.pic};});
+WHO.phisher={n:'Гонець',r:'каже, що від старости',p:'art/mobs/phisher.jpg'};
+WHO.goblin={n:'Фішинг-гоблін',r:'викрито',p:'art/mobs/phisher.jpg'};
+WHO.l_wan={n:'Стовп при дорозі',r:'огляд',p:'art/scenes/kur/wan-socket.png',look:1};
+WHO.l_house={n:'Крайня хата',r:'огляд',p:'art/scenes/kur/house-dark.png',look:1};
+WHO.l_switch={n:'Комутатор під вежею',r:'огляд',p:'art/scenes/kur/switch.png',look:1};
+WHO.l_tower={n:'Вістова вежа',r:'огляд',p:'art/scenes/kur/tower-fire.png',look:1};
+WHO.l_seal={n:'Печатка WPA3',r:'на вивісці корчми',p:'art/scenes/kur/wpa3-seal.png',look:1};
+setTimeout(function(){Object.keys(WHO).forEach(function(k){if(WHO[k]&&WHO[k].p)(new Image()).src=WHO[k].p;});},1500);
+
+/* ambient animals */
+var ANIM=[
+  {k:'cat',x:800,y:322,facing:-1,sc:.34,mode:'sit',t:0,range:[740,880],yr:[318,326],sp:22},
+  {k:'dog',x:836,y:594,facing:1,sc:.36,mode:'lie',t:0,range:[820,860],yr:[590,598],sp:70},
+  {k:'hen_b',x:660,y:720,facing:1,sc:.36,mode:'peck',t:0,range:[620,770],yr:[700,775],sp:18},
+  {k:'hen_w',x:700,y:752,facing:-1,sc:.36,mode:'peck',t:1.2,range:[620,770],yr:[700,775],sp:18},
+  {k:'hen_b',x:735,y:705,facing:-1,sc:.34,mode:'walk',t:2.1,range:[620,770],yr:[700,775],sp:18}];
+
+/* ================= items & scrolls ================= */
+var ITEMS={
+  chronicle:{n:'Хроніка Книжника',img:'art/items/kur/chronicle.jpg',d:'Тут описано, як вежа роздає вісті. Клацни, щоб читати.'},
+  sw:{n:'Комутатор',img:'art/items/kur/switchbox.jpg',d:'Скриня з багатьма гніздами. Віднеси її до вежі, Данилові.'},
+  letter:{n:'Лист гінця',img:'art/items/kur/letter.jpg',d:'Лист із чужою печаткою й гачком. Покажи його старості Мирону.'},
+  byte:{n:'Срібний байт',img:'art/items/byte.jpg',d:'Нагорода громади Куренівки. 1 байт = 8 біт.'},
+  zhupan:{n:'Жупан',img:'art/items/kur/zhupan.jpg',d:'Теплий жупан від коваля Тараса.'}};
+var inv=['chronicle'],NEWI=null;
+var SCR=[
+ {id:'net',t:'Вежа, хати й шлях',sub:'Сувій 1 · Мережа',fig:'art/chronicle/village-network.jpg',cap:'Вістова вежа в центрі, від неї дроти до кожної хати',
+  body:'<p><b class="t">Мережа</b> — це кілька пристроїв, з’єднаних між собою, щоб передавати одне одному дані.</p><p>Серце домашньої мережі — <b class="t">роутер</b> (маршрутизатор). Він приймає дані ззовні й роздає їх усім пристроям у домі. У Куренівці роутер — це Вістова вежа, а хати — пристрої.</p>',
+  glos:[['LAN','локальна мережа: пристрої в одному домі чи селі'],['WAN','зовнішня мережа, через яку дім виходить в інтернет'],['Інтернет','мережа мереж; у королівстві це Великий шлях']],
+  note:'Запам’ятай: вежа одна, а хат багато. Усе, що далі, про те, як вісті доходять від вежі до кожної.'},
+ {id:'wan',t:'Гнізда вежі',sub:'Сувій 2 · Порти роутера',fig:'art/scenes/kur/wan-socket.png',prop:1,cap:'WAN-скринька на стовпі при Великому шляху',
+  body:'<p>На роутері кілька гнізд, і в кожного своя робота.</p><p>Гніздо <b class="t">WAN</b> одне, часто іншого кольору. Через нього роутер з’єднаний із постачальником інтернету, тобто з Великим шляхом.</p><p>Гнізда <b class="t">LAN</b> для пристроїв у домі. Гніздо <b class="t">USB</b> для флешки чи принтера, інтернет через нього не приходить.</p>',
+  note:'Шукаєш, звідки приходять вісті ззовні? Шукай WAN.'},
+ {id:'fiber',t:'Скляна нитка',sub:'Сувій 3 · Оптоволокно',fig:'art/chronicle/fiber.jpg',cap:'Угорі скляна нитка зі світлом, унизу мідні жили',
+  body:'<p>Звичайний мережевий кабель має мідні жили, по них біжить електричний сигнал. На великій відстані він слабне.</p><p><b class="t">Оптоволоконний кабель</b> передає дані світлом по тонких скляних нитках. Він тягнеться на великі відстані й передає дані в тисячі разів швидше за мідь.</p>',
+  note:'Тому оптоволокно кладуть там, де далеко й треба дуже швидко: між містами, від вулиці до будинку.'},
+ {id:'switch',t:'Комутатор',sub:'Сувій 4 · Розгалуження мережі',fig:'art/chronicle/switch-router.jpg',cap:'Від вежі до комутатора, від нього до лав і хат',
+  body:'<p>Гнізд на роутері небагато. Коли пристроїв більше, додають <b class="t">комутатор</b> (світч): скриньку з багатьма гніздами.</p><p>Комутатор з’єднує дротами кілька пристроїв в одній локальній мережі. Роутер виводить мережу назовні, а комутатор лише розгалужує її всередині.</p>',
+  note:'Одне гніздо вежі → комутатор → дроти до багатьох хат.'},
+ {id:'cable',t:'Дріт чи повітря',sub:'Сувій 5 · Ethernet і Wi‑Fi',fig:'art/chronicle/cable-vs-air.jpg',cap:'Ліворуч хати з’єднані дротом, праворуч вісті летять повітрям',
+  body:'<p><b class="t">Ethernet</b> — з’єднання дротом. Воно стабільне й швидке, йому не заважають стіни. Але пристрій прив’язаний до кабелю.</p><p><b class="t">Wi‑Fi</b> — вісті летять повітрям, без дротів. Зручно для телефонів і гостей, що приходять і йдуть. Та стіни й відстань послаблюють сигнал.</p>',
+  note:'Пристрій стоїть на місці й тягне багато даних? Краще дріт. Гості з телефонами? Повітря.'},
+ {id:'wpa',t:'Печатка на повітрі',sub:'Сувій 6 · Захист Wi‑Fi',fig:'art/scenes/kur/wpa3-seal.png',prop:1,cap:'Печатка WPA3 на вивісці корчми',
+  body:'<p>Повітряну мережу чує кожен поруч, тому її захищають <b class="t">паролем</b> і шифруванням.</p><p>Найновіший і найнадійніший захист — <b class="t">WPA3</b>. Якщо пристрій його не вміє, вмикають WPA2. Старі WEP і WPA зламують за лічені хвилини, їх не використовують.</p><p>Пароль не кажуть незнайомцям, навіть якщо ті пишуть «від імені» когось знайомого. Таке виманювання зветься <b class="t">фішинг</b>.</p>',
+  note:'Сумніваєшся в листі? Спитай того, від чийого імені він нібито прийшов.'},
+ {id:'fix',t:'Якщо хата мовчить',sub:'Сувій 7 · Перевір контакти',fig:'art/scenes/kur/house-dark.png',prop:1,cap:'Хата без вістей: кінець дроту випав',
+  body:'<p>Пристрій з’єднаний кабелем, а мережі нема? Перш ніж щось купувати чи кликати майстра, <b class="t">перевір контакти</b>.</p><p>Подивись, чи щільно вставлений кабель у гніздо пристрою і на <b class="t">другому кінці</b>, у роутері чи комутаторі. Штекер має клацнути. Біля гнізда зазвичай світиться вогник, коли зв’язок є.</p>',
+  note:'Завжди перевіряй обидва кінці дроту.'}];
+var OPEN={net:1},READ={};
+
+/* ================= quest ================= */
+var Q='meet',BITS=0,EARN=0,STEPN=0;
+var STEPS=['meet','book','wan','fiber','switch','place','cable','wpa','phish','silent','silent2','final','done'];
+var QT={
+  meet:['Знайди старосту','Староста Мирон стоїть біля своєї хати, нагорі майдану.'],
+  book:['Хроніка Книжника','Філип чекає біля криниці.'],
+  wan:['Звідки приходять вісті?','Оглянь стовп зі скринькою при Великому шляху.'],
+  fiber:['Від шляху до вежі','Поговори з вартовим Данилом біля стежки до вежі.'],
+  switch:['Гнізд замало','Сходи до коваля Тараса в кузню.'],
+  place:['Комутатор під вежу','Віднеси комутатор Данилові.'],
+  cable:['Дріт до кузні?','Тарас хоче вістей у кузні. Поговори з ним.'],
+  wpa:['Повітря для корчми','Корчмарка Ярина біля ґанку корчми.'],
+  phish:['Дивний гонець','Біля корчми хтось є.'],
+  silent:['Хата, що мовчить','Покажи лист Мирону й дізнайся, де ще тихо.'],
+  silent2:['Другий кінець дроту','Перевір дріт біля комутатора під вежею.'],
+  final:['Вісті для кожної хати','Повернись до старости Мирона.'],
+  done:['Квест виконано','Вісті дійшли до кожної хати.']};
+function goal(){switch(Q){case 'meet':return NPC.myron;case 'book':return NPC.filip;case 'wan':return HOT.pole;case 'fiber':return NPC.danylo;case 'switch':return NPC.taras;case 'place':return NPC.danylo;case 'cable':return NPC.taras;case 'wpa':return NPC.yaryna;case 'phish':return GOB.hidden?NPC.yaryna:GOB;case 'silent':return inv.indexOf('letter')>=0?NPC.myron:HOT.hutBL;case 'silent2':return HOT.swbox;case 'final':return NPC.myron;}return null;}
+function setQ(q){Q=q;STEPN=STEPS.indexOf(q);updQuest();}
+function updQuest(){var t=QT[Q];if(Q==='silent'&&inv.indexOf('letter')<0)t=['Хата, що мовчить','Оглянь крайню хату ліворуч, внизу майдану.'];
+  document.getElementById('qTitle').textContent=t[0];document.getElementById('qText').textContent=t[1];
+  var bar=document.getElementById('qBar'),n=STEPS.length-1,h='';for(var i=0;i<n;i++)h+='<i class="'+(i<STEPN?'on':'')+'"></i>';bar.innerHTML=h;
+  document.getElementById('cBits').textContent=BITS;}
+
+/* ================= DOM ================= */
+var cv=document.getElementById('cv'),c=cv.getContext('2d'),DPR=1,SC=1,SC0=1,ZM=1,ZMT=1,BW=W,BH=H,VW=W,VH=H,CAMX=0,CAMY=0;
+var dlg=document.getElementById('dlg'),dPic=document.getElementById('dPic'),dName=document.getElementById('dName'),dText=document.getElementById('dText'),dActs=document.getElementById('dActs');
+var toastEl=document.getElementById('toast'),invEl=document.getElementById('inv'),imenu=document.getElementById('imenu'),tt=0,busy=false;
+document.getElementById('cPic').src=heroPic();document.getElementById('cName').textContent=hero.name;
+function toast(t,ms){if(window.CKS)CKS('ui-toast',.35,{quiet:400});toastEl.textContent=t;toastEl.hidden=false;clearTimeout(tt);tt=setTimeout(function(){toastEl.hidden=true},ms||3000);}
+function renderInv(){invEl.innerHTML='';inv.forEach(function(id){var it=ITEMS[id],b=document.createElement('button');b.type='button';b.className='slot'+(id==='chronicle'?' chron':'')+(NEWI===id?' new':'');
+  b.setAttribute('aria-label',it.n);b.title=it.n;b.innerHTML='<img src="'+it.img+'" alt="">';
+  b.onclick=function(){if(busy&&id!=='chronicle')return;if(id==='chronicle'){openBook();return;}imenu.innerHTML='<b>'+it.n+'</b><p>'+it.d+'</p><div class="row"><button class="btn plain sm" id="im-x">Гаразд</button></div>';imenu.hidden=false;document.getElementById('im-x').onclick=function(){imenu.hidden=true};};
+  invEl.appendChild(b);});invEl.hidden=!inv.length;NEWI=null;}
+function addItem(id){if(window.CKS)CKS('ui-item',.8);if(inv.indexOf(id)<0)inv.push(id);NEWI=id;renderInv();updQuest();}
+function dropItem(id){var i=inv.indexOf(id);if(i>=0)inv.splice(i,1);renderInv();updQuest();}
+function earn(n){BITS+=n;EARN+=n;updQuest();}
+
+/* ---- dialog ---- */
+function who(k){return k==='hero'?{n:hero.name,r:'це ти',p:heroPic()}:WHO[k];}
+function setPic(src){if(dPic.getAttribute('src')===src)return;dPic.style.visibility='hidden';dPic.onload=dPic.onerror=function(){dPic.style.visibility='';};dPic.src=src;if(dPic.complete&&dPic.naturalWidth)dPic.style.visibility='';}
+function setSpeaker(k){var w=who(k);dlg.classList.toggle('hero',k==='hero');dlg.classList.toggle('look',!!w.look);setPic(w.p);dPic.alt=w.n;
+  dName.innerHTML='';dName.appendChild(document.createTextNode(w.n));var sm=document.createElement('small');sm.textContent=w.r;dName.appendChild(sm);
+  Object.keys(NPC).forEach(function(q){NPC[q].talk=q===k?1:0;});GOB.talk=k==='phisher'?1:0;}
+function say(lines){if(window.CKS)CKS('ui-dialog',.6,{quiet:150});return new Promise(function(res){var i=0;busy=true;dlg.hidden=false;toastEl.hidden=true;imenu.hidden=true;dActs.classList.remove('ask');
+  function step(){var L=lines[i];setSpeaker(L[0]);dText.textContent=L[1];dActs.innerHTML='';dActs.classList.remove('ask');
+    if(L[2]){dActs.classList.add('ask');L[2].forEach(function(ch,k){var b=document.createElement('button');b.type='button';b.className='btn sm '+(k?'plain':'gold');b.textContent=ch;b.onclick=function(){endTalk();res(k)};dActs.appendChild(b);});dActs.firstChild.focus();}
+    else{var b=document.createElement('button');b.type='button';b.className='next';b.textContent=i<lines.length-1?'Далі ›':'Завершити ›';b.onclick=function(){i++;if(i<lines.length)step();else{endTalk();res(-1);}};dActs.appendChild(b);b.focus();}}
+  step();});}
+function endTalk(){dlg.hidden=true;dlg.querySelector('.body').classList.remove('tall');busy=false;Object.keys(NPC).forEach(function(q){NPC[q].talk=0;});GOB.talk=0;}
+function shuffle(n){var a=[];for(var i=0;i<n;i++)a.push(i);for(var j=n-1;j>0;j--){var r=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[r];a[r]=t;}return a;}
+/* A question: options in random order, wrong answer → Філип's hint + a link to the right scroll; reward 8/4/2 біт. */
+async function ask(sp,text,opts,scroll,hints){var tries=0;
+  while(true){var ord=shuffle(opts.length),shown=ord.map(function(i){return opts[i]});
+    var k=await askOnce(sp,text,shown,scroll);if(k===-2){await openBookAsync(scroll);continue;}
+    var pick=ord[k];tries++;
+    if(pick===0){if(window.CKS){CKS('ui-correct');setTimeout(function(){CKS('ui-coins',.8)},550);}var r=tries===1?8:tries===2?4:2;earn(r);toast('+'+r+' біт'+(tries===1?' · з першого разу!':''));return tries;}
+    if(window.CKS)CKS('ui-wrong',.6);
+    await say([['filip',(hints&&hints[pick])||'Не зовсім. Зазирни в Хроніку, там про це є цілий сувій.']]);}}
+function askOnce(sp,text,opts,scroll){return new Promise(function(res){busy=true;dlg.hidden=false;toastEl.hidden=true;imenu.hidden=true;setSpeaker(sp);dText.textContent=text;dActs.innerHTML='';dActs.classList.add('ask');dlg.querySelector('.body').classList.add('tall');
+  opts.forEach(function(o,k){var b=document.createElement('button');b.type='button';b.className='btn sm plain';b.textContent=o;b.onclick=function(){endTalk();res(k)};dActs.appendChild(b);});
+  if(scroll){var h=document.createElement('button');h.type='button';h.className='next hint';h.textContent='Звіритися з Хронікою';h.onclick=function(){endTalk();res(-2)};dActs.appendChild(h);}
+  dActs.firstChild.focus();});}
+function wait(ms){return new Promise(function(r){setTimeout(r,ms)});}
+
+/* ---- Хроніка ---- */
+var book=document.getElementById('book'),toc=document.getElementById('toc'),page=document.getElementById('page'),bookRes=null,CUR='net';
+function unlock(id,quiet){if(OPEN[id])return;OPEN[id]=1;if(!quiet){window.CKS&&CKS('kur-scroll',.7);}if(!quiet)toast('У Хроніці новий сувій: «'+SCR.filter(function(s){return s.id===id})[0].t+'»');NEWI='chronicle';renderInv();}
+function openBook(id){window.CKS&&CKS('kur-book',.7);if(id)CUR=id;else{var un=SCR.filter(function(s){return OPEN[s.id]&&!READ[s.id]});if(un.length)CUR=un[0].id;}
+  book.hidden=false;if(window.CKA)CKA.music('m07-chronicle');renderToc();renderPage();setTimeout(function(){document.getElementById('bClose').focus()},30);}
+function openBookAsync(id){return new Promise(function(r){bookRes=r;openBook(id);});}
+function closeBook(){book.hidden=true;if(window.CKA)CKA.music(Q==='phish'&&!GOB.hidden?'m08-goblin':'m06-kurenivka');var r=bookRes;bookRes=null;if(r)r();}
+document.getElementById('bClose').onclick=closeBook;
+book.addEventListener('click',function(e){if(e.target===book)closeBook();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!book.hidden)closeBook();});
+function renderToc(){toc.querySelectorAll('button').forEach(function(b){b.remove()});
+  SCR.forEach(function(s,i){var b=document.createElement('button');b.type='button';b.innerHTML='<i>'+(READ[s.id]?'✓':(i+1))+'</i><span>'+(OPEN[s.id]?s.t:'Запечатано')+'</span>';
+    if(READ[s.id])b.className='read';if(!OPEN[s.id])b.disabled=true;b.setAttribute('aria-current',String(s.id===CUR));
+    b.onclick=function(){if(CUR!==s.id)window.CKS&&CKS('kur-page',.7);CUR=s.id;renderToc();renderPage();};toc.appendChild(b);});}
+function renderPage(){var s=SCR.filter(function(x){return x.id===CUR})[0];READ[s.id]=1;
+  var h='<small>'+s.sub+'</small><h3>'+s.t+'</h3>'+s.body+'<figure class="'+(s.prop?'prop':'')+'"><img src="'+s.fig+'" alt="'+s.cap+'"><figcaption>'+s.cap+'</figcaption></figure>';
+  if(s.glos)h+='<dl class="glos">'+s.glos.map(function(q){return '<div><dt>'+q[0]+'</dt><dd>'+q[1]+'</dd></div>'}).join('')+'</dl>';
+  h+='<p class="note"><b>Нотатка Філипа</b>'+s.note+'</p><span class="readseal" aria-hidden="true">про&shy;чи&shy;тано</span>';
+  if(bookRes)h+='<button type="button" class="btn gold sm back" id="bBack">Повернутися до питання</button>';
+  page.innerHTML=h;page.scrollTop=0;var bb=document.getElementById('bBack');if(bb)bb.onclick=closeBook;renderToc();}
+
+/* ================= walking (grid A*) ================= */
+var GS=12,GW=Math.ceil(W/GS),GH=Math.ceil(H/GS),GRID=new Uint8Array(GW*GH);
+(function(){var m=document.createElement('canvas');m.width=GW;m.height=GH;var x=m.getContext('2d');x.fillStyle='#fff';x.beginPath();WALK.poly.forEach(function(p,i){i?x.lineTo(p[0]/GS,p[1]/GS):x.moveTo(p[0]/GS,p[1]/GS)});x.closePath();x.fill();
+  x.fillStyle='#000';WALK.obst.forEach(function(o){x.beginPath();x.ellipse(o[0]/GS,o[1]/GS,o[2]/GS,o[3]/GS,0,0,Math.PI*2);x.fill();});
+  var d=x.getImageData(0,0,GW,GH).data;for(var i=0;i<GW*GH;i++)GRID[i]=d[i*4]>128?1:0;})();
+function cell(x,y){var cx=Math.floor(x/GS),cy=Math.floor(y/GS);return cx>=0&&cy>=0&&cx<GW&&cy<GH&&GRID[cy*GW+cx];}
+function nearestOpen(x,y){if(cell(x,y))return{x:x,y:y};for(var r=1;r<40;r++){for(var a=0;a<16;a++){var px=x+Math.cos(a/16*Math.PI*2)*r*GS,py=y+Math.sin(a/16*Math.PI*2)*r*GS;if(cell(px,py))return{x:px,y:py};}}return{x:x,y:y};}
+function los(a,b){var d=Math.hypot(b.x-a.x,b.y-a.y),n=Math.ceil(d/(GS/2));for(var i=1;i<=n;i++){var t=i/n;if(!cell(a.x+(b.x-a.x)*t,a.y+(b.y-a.y)*t))return false;}return true;}
+function path(a,b){b=nearestOpen(b.x,b.y);if(los(a,b))return[b];
+  var sx=Math.floor(a.x/GS),sy=Math.floor(a.y/GS),ex=Math.floor(b.x/GS),ey=Math.floor(b.y/GS),N=GW*GH,gS=new Float32Array(N).fill(1e9),from=new Int32Array(N).fill(-1),closed=new Uint8Array(N),open=[sy*GW+sx];gS[sy*GW+sx]=0;
+  function h(i){return Math.hypot(i%GW-ex,Math.floor(i/GW)-ey);}
+  var it=0;while(open.length&&it++<20000){var bi=0,bf=1e9;for(var q=0;q<open.length;q++){var f=gS[open[q]]+h(open[q]);if(f<bf){bf=f;bi=q;}}
+    var cur=open.splice(bi,1)[0];if(cur===ey*GW+ex)break;closed[cur]=1;var cx=cur%GW,cy=Math.floor(cur/GW);
+    for(var dy=-1;dy<=1;dy++)for(var dx=-1;dx<=1;dx++){if(!dx&&!dy)continue;var nx=cx+dx,ny=cy+dy;if(nx<0||ny<0||nx>=GW||ny>=GH)continue;var ni=ny*GW+nx;if(!GRID[ni]||closed[ni])continue;
+      if(dx&&dy&&(!GRID[cy*GW+nx]||!GRID[ny*GW+cx]))continue;var ng=gS[cur]+(dx&&dy?1.414:1);if(ng<gS[ni]){gS[ni]=ng;from[ni]=cur;if(open.indexOf(ni)<0)open.push(ni);}}}
+  var e=ey*GW+ex;if(from[e]<0)return[b];var pts=[];while(e>=0&&e!==sy*GW+sx){pts.unshift({x:(e%GW+.5)*GS,y:(Math.floor(e/GW)+.5)*GS});e=from[e];}pts[pts.length-1]=b;
+  var out=[],p=a,i=0;while(i<pts.length){var j=pts.length-1;while(j>i&&!los(p,pts[j]))j--;out.push(pts[j]);p=pts[j];i=j+1;}return out;}
+var P={x:1430,y:930,facing:-1,moving:false,route:[],onArrive:null};
+function walkTo(e,x,y){return new Promise(function(res){e.route=path({x:e.x,y:e.y},{x:x,y:y});e.onArrive=res;});}
+function moveEnt(e,dt,sp){if(!e.route||!e.route.length){e.moving=false;return;}var t=e.route[0],dx=t.x-e.x,dy=t.y-e.y,d=Math.hypot(dx,dy);
+  if(d<2){e.route.shift();if(!e.route.length){e.moving=false;var cb=e.onArrive;e.onArrive=null;if(cb)cb();}return;}
+  var s=Math.min(d,sp*dt);e.x+=dx/d*s;e.y+=dy/d*s;e.moving=true;if(Math.abs(dx)>.5)e.facing=dx<0?-1:1;}
+/* NPCs walk straight lines on scripted routes (no pathing needed) */
+function npcTo(n,pts){return new Promise(function(res){n.route=pts.map(function(p){return{x:p[0],y:p[1]}});n.onArrive=res;});}
+
+/* ================= interaction ================= */
+var HOT={
+  pole:{name:'Стовп при дорозі',x:1458,y:320,rect:[1425,170,1500,470],spot:{x:1440,y:478}},
+  tower:{name:'Вістова вежа',x:262,y:120,rect:[160,0,350,215],spot:{x:300,y:222}},
+  swbox:{name:'Комутатор',x:300,y:462,rect:[278,440,322,476],spot:{x:372,y:478},hidden:function(){return !SWITCH_ON}},
+  hutBL:{name:'Крайня хата',x:366,y:560,rect:[250,500,490,700],spot:{x:590,y:556}},
+  sign:{name:'Вивіска корчми',x:1112,y:448,rect:[1080,420,1150,480],spot:{x:1060,y:636},hidden:function(){return !SEAL_ON}}};
+function spotOf(t){if(t.spot)return t.spot;return{x:t.x+(P.x<t.x?-34:34),y:t.y+6};}
+async function approach(t){var s=spotOf(t);if(Math.hypot(P.x-s.x,P.y-s.y)>8)await walkTo(P,s.x,s.y);P.facing=t.x<P.x?-1:1;if(t.facing!=null&&!t.hot)t.facing=P.x<t.x?-1:1;}
+function npcAt(p){var all=Object.keys(NPC).map(function(k){return NPC[k]});if(!GOB.hidden)all.push(GOB);
+  for(var i=0;i<all.length;i++){var n=all[i],h=70*(n===GOB?.7:1);if(p.x>n.x-20&&p.x<n.x+20&&p.y>n.y-h&&p.y<n.y+6)return n;}return null;}
+function hotAt(p){for(var k in HOT){var h=HOT[k];if(h.hidden&&h.hidden())continue;var r=h.rect;if(p.x>r[0]&&p.x<r[2]&&p.y>r[1]&&p.y<r[3])return h;}return null;}
+var HOV=null;
+function toWorld(e){var r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/SC+CAMX,y:(e.clientY-r.top)/SC+CAMY};}
+cv.addEventListener('pointermove',function(e){var p=toWorld(e);if(WIRE){WIRE.pt=p;cv.style.cursor=wireHit(p)?'pointer':'default';HOV=null;return;}HOV=npcAt(p)||hotAt(p);cv.style.cursor=HOV?'pointer':'default';});
+var SCRIPT=false;
+cv.addEventListener('pointerdown',async function(e){if(WIRE&&book.hidden){var wp=toWorld(e);WIRE.pt=wp;wireClick(wp);return;}if(busy||SCRIPT||!book.hidden)return;imenu.hidden=true;var p=toWorld(e),n=npcAt(p),h=n?null:hotAt(p);
+  if(n){SCRIPT=true;try{await approach(n);await talk(n);}finally{SCRIPT=false;busy=false;}return;}
+  if(h){SCRIPT=true;try{await approach(h);await use(h);}finally{SCRIPT=false;busy=false;}return;}
+  var q=nearestOpen(p.x,p.y);P.route=path({x:P.x,y:P.y},q);P.onArrive=null;MARK={x:q.x,y:q.y,t:0};});
+var MARK=null;
+
+/* ================= story ================= */
+var talked={};
+async function talk(n){var k=n===GOB?'phisher':n.id;n.facing=P.x<n.x?-1:1;
+  if(k==='myron')return talkMyron();if(k==='filip')return talkFilip();if(k==='danylo')return talkDanylo();if(k==='taras')return talkTaras();if(k==='yaryna')return talkYaryna();if(k==='phisher')return talkGob();}
+async function talkMyron(){
+  if(Q==='meet'){await say([['myron','А, ось і ти! Остап казав, що до нас іде '+g('учень','учениця')+' з Узлісся. Я Мирон, староста Куренівки.'],['hero','Добрий день! А чого у вас так тихо?'],
+      ['myron','Біда в нас. Великим шляхом біжать вісті з усього королівства. До Вістової вежі вони доходять, а далі ні до кого. Хати сидять, як глухі.'],
+      ['myron','Сходи до Книжника Філипа, он він біля криниці. У нього Хроніка, там записано, як вежа має роздавати вісті.']]);setQ('book');return;}
+  if(Q==='silent'&&inv.indexOf('letter')>=0){await say([['hero','Пане старосто, біля корчми був гонець. Казав, що від вас, і питав пароль від повітря.'],
+      ['myron','Від мене? Я нікого не посилав! Ану покажи лист… Печатка чужа, ще й гачок причеплений. Добре, що ти пароль не '+g('сказав','сказала')+'.'],
+      ['myron','Вісті тепер майже в усіх хатах. Тільки крайня хата ліворуч, унизу майдану, досі мовчить. Глянь, що там.']]);dropItem('letter');unlock('fix');updQuest();return;}
+  if(Q==='final')return finale();
+  if(Q==='done'){await say([['myron','Вісті тепер у кожній хаті. Заходь іще, у нас завжди знайдеться робота для '+g('розумного хлопця','розумної дівчини')+'.']]);return;}
+  await say([['myron',{book:'Філип біля криниці, з книгою під пахвою. Не розминешся.',wan:'Вісті приходять з Великого шляху, праворуч. Глянь на стовп при дорозі.',fiber:'Данило вартує біля стежки до вежі, ліворуч.',switch:'Тарас у кузні, нагорі праворуч. Чуєш, як молот дзвенить?',place:'Неси комутатор Данилові, до вежі.',cable:'Тарас щось хотів від тебе, зайди до кузні.',wpa:'Ярина біля корчми. Вона давно чекає вістей для гостей.',phish:'Що там біля корчми за метушня?',silent:'Крайня хата ліворуч, унизу майдану. Там досі тихо.',silent2:'Другий кінець дроту під вежею, біля комутатора.'}[Q]||'Ну як, справляєшся?']]);}
+async function talkFilip(){
+  if(Q==='book'){await say([['filip','Мир тобі. Я Філип, Книжник. Записую все, що діється в королівстві, у Хроніку.'],['filip','Ось вона. Бери, тепер вона твоя. Хроніка відповідає на всі питання, якщо її уважно читати.']]);
+    addItem('chronicle');toast('Хроніка в торбі. Клацни на книгу внизу, щоб читати');
+    await say([['filip','Прочитай перший сувій: що таке мережа, вежа і шлях. Потім повертайся.']]);await openBookAsync('net');
+    await say([['filip','Прочитав? Тоді перше діло: знайди, звідки до нас приходять вісті з Великого шляху. Глянь на стовп при дорозі, праворуч.']]);unlock('wan');setQ('wan');return;}
+  if(Q==='meet'){await say([['filip','Спершу поговори зі старостою Мироном. Він нагорі майдану, біля своєї хати.']]);return;}
+  if(Q==='done'){await say([['filip','Розділ прочитано, справу зроблено. У Коморі тебе чекає наступний розділ Хроніки.']]);return;}
+  var tip={wan:'wan',fiber:'fiber',switch:'switch',place:'switch',cable:'cable',wpa:'wpa',phish:'wpa',silent:'fix',silent2:'fix',final:'net'}[Q];
+  var k=await say([['filip','Застряг'+g('','ла')+'? Кожна відповідь є в Хроніці. Відкрити потрібний сувій?',['Відкрити Хроніку','Дякую, сам'+g('','а')]]]);if(k===0)await openBookAsync(tip);}
+async function talkDanylo(){
+  if(Q==='fiber'){await say([['danylo','Стій, хто йде? А, свій. Я Данило, вартую Вістову вежу.'],['hero','Вісті з Великого шляху приходять на стовп при дорозі. Як дотягти їх сюди, до вежі?'],
+      ['danylo','Отож. Від стовпа до вежі далеко, через усе село. Старий мідний дріт дорогою губив половину вістей.']]);
+    await ask('danylo','Що прокласти від стовпа до вежі, щоб вісті бігли далеко й дуже швидко?',['Оптоволокно, скляну нитку','Мідний дріт, тільки товщий','Нічого, хай летять повітрям (Wi‑Fi)'],'fiber',
+      [null,'Мідь на великій відстані слабне, хоч яка товста. Глянь у Хроніці сувій «Скляна нитка».','Повітря через усе село, крізь хати й дерева? Сигнал загубиться. Перечитай сувій «Скляна нитка».']);
+    await say([['danylo','Скляна нитка! Є в мене котушка, Тарас виміняв на ярмарку. Тягнемо!']]);
+    await wireMode({keep:1,title:'Проклади скляну нитку',nodes:['wan','tower','hutTop','main','forge','tavern'],
+      text:function(){return 'Торкнись, звідки вести нитку, а потім куди.';},hint:function(){return 'від скриньки WAN на стовпі до вежі.';},
+      check:function(a,b){if(pairIs(a,b,'wan','tower'))return LINKS.fiber.on?{dup:1}:{link:'fiber'};
+        if(a==='wan'||b==='wan')return 'Хата сама не роздасть вісті сусідам. Спершу веди нитку до вежі, а вже вежа поділиться.';
+        return 'Зараз треба привести вісті з Великого шляху. Почни від скриньки на стовпі.';},done:function(){return LINKS.fiber.t>=1;}});
+    busy=true;ZMT=1.9;await look(262,70,1400);FIRE=0.01;window.CKS&&CKS('kur-brazier',.9);toast('Вежа прийняла вісті з Великого шляху!');await wait(2600);ZMT=1;unlook();await wait(500);
+    await say([['danylo','Вежа горить! Тільки гнізд у ній кілька, а хат у селі он скільки. Іди до коваля Тараса, він щось вигадає.']]);unlock('switch');setQ('switch');return;}
+  if(Q==='place'){await say([['hero','Тарас викував комутатор. Куди його?'],['danylo','Ставимо під вежею. Одне гніздо вежі в комутатор, а від нього дроти до хат.']]);dropItem('sw');SWITCH_ON=true;
+    var HS=['hutTop','main','hutB','hutR','hutBL'];
+    await wireMode({title:'Проведи дроти від комутатора',nodes:['tower','sw','hutTop','main','hutB','hutR','hutBL'],
+      text:function(){var n=HS.filter(function(k){return LINKS[k].on}).length;return LINKS.up.on?'Тепер від комутатора до кожної хати. Під’єднано '+n+' з 5.':'Спершу з’єднай вежу з комутатором.';},
+      hint:function(){return LINKS.up.on?'одним кінцем торкнись комутатора, другим хати.':'вежа і комутатор.';},
+      check:function(a,b){if(pairIs(a,b,'tower','sw'))return LINKS.up.on?{dup:1}:{link:'up'};
+        var h=a==='sw'?b:b==='sw'?a:null;
+        if(h&&HS.indexOf(h)>=0){if(!LINKS.up.on)return 'Звідки ж комутатор візьме вісті? Спершу з’єднай його з вежею.';return LINKS[h].on?{dup:1}:{link:h,lit:h==='hutBL'?null:h};}
+        if(a==='tower'||b==='tower')return 'У вежі лише кілька гнізд, на всі хати не вистачить. Хати веди від комутатора.';
+        return 'Від хати до хати дріт нічого не дасть: вістей у них нема. Кожну хату веди до комутатора.';},
+      done:function(){return LINKS.up.t>=1&&HS.every(function(k){return LINKS[k].t>=1});}});
+    busy=true;
+    toast('Дроти пішли до хат!');await wait(1200);unlook();
+    await say([['danylo','Ото діло! А Тарас, здається, кликав тебе. Хотів щось спитати про кузню.']]);unlock('cable');setQ('cable');return;}
+  if(Q==='silent2')return use(HOT.swbox);
+  await say([['danylo',Q==='meet'||Q==='book'||Q==='wan'?'Вежа стоїть, вогонь не горить. Без вістей і вартувати нудно.':'Вежа горить, вісті біжать. Красота.']]);}
+async function talkTaras(){
+  if(Q==='switch'){await say([['taras','Ха, то це ти запали'+g('в','ла')+' вежу? Я Тарас, коваль. Що треба?'],['hero','Від вежі мають іти дроти до всіх хат, а гнізд у ній мало.']]);
+    await ask('taras','Що мені викувати, щоб від одного гнізда вежі дроти розійшлися до багатьох хат?',['Комутатор','Ще одну вежу','Довгу мотузку з вузлами'],'switch',
+      [null,'Друга вежа нічого не дасть: гнізд у кожній так само мало. Глянь сувій «Комутатор».','Мотузка вістей не передає. Глянь у Хроніці сувій «Комутатор».']);
+    await say([['taras','Комутатор! Скриня з багатьма гніздами. Зараз… (дзень-дзень) Тримай, ще тепла. Неси Данилові.']]);window.CKS&&CKS('kur-anvil',.8);addItem('sw');setQ('place');return;}
+  if(Q==='cable'){await say([['taras','Слухай, а мені в кузню вісті теж треба. Креслення, замовлення, цілий день щось приходить. А стіни в мене товсті, кам’яні.']]);
+    await ask('taras','Що краще для кузні: дріт чи повітря?',['Дріт (Ethernet)','Повітря (Wi‑Fi)'],'cable',[null,'Повітря крізь товсті кам’яні стіни слабне, а Тарасові треба багато й без перебоїв. Глянь сувій «Дріт чи повітря».']);
+    await say([['taras','Так і думав. Дріт надійніший.']]);
+    await wireMode({title:'Дріт до кузні',nodes:['tower','sw','forge','tavern','main'],text:function(){return 'Проведи дріт до кузні: торкнись звідки, потім куди.';},hint:function(){return 'від комутатора до кузні.';},
+      check:function(a,b){if(pairIs(a,b,'sw','forge'))return LINKS.forge.on?{dup:1}:{link:'forge',lit:'forge'};if(pairIs(a,b,'tower','forge'))return 'Гнізда вежі вже зайняті. Кузню веди від комутатора, як і хати.';
+        return 'Тарас чекає дроту до кузні.';},done:function(){return LINKS.forge.t>=1;}});
+    busy=true;await wait(600);
+    await say([['taras','Іде! А от Ярині в корчму дріт не годиться: гості приходять зі своїми скриньками, щодня нові. Їм краще повітря. Сходи до неї.']]);AIR=0.01;window.CKS&&CKS('kur-air',.8);unlock('wpa');setQ('wpa');return;}
+  if(Q==='place'){await say([['taras','Неси комутатор Данилові, поки не вистиг!']]);return;}
+  await say([['taras',Q==='done'||Q==='final'?'Жупан тобі пасує? Мирон казав, ти нам усе село оживи'+g('в','ла')+'.':'Кую, кую. Як щось треба, приходь.']]);}
+/* ---- Ярина: налаштування повітряної скриньки ---- */
+var WEAK=['12345678','123456789','1234567890','password','qwerty','qwertyui','11111111','00000000','korchma','корчма','пароль','admin','yaryna','ярина'];
+function pwScore(p){var s=0;if(p.length>=8)s++;if(p.length>=12)s++;if(/[a-zа-яіїєґ]/i.test(p)&&/\d/.test(p))s++;if(/[^a-zа-яіїєґ0-9]/i.test(p))s++;if(WEAK.some(function(w){return p.toLowerCase().indexOf(w)>=0}))s=Math.min(s,1);return s;}
+(function(){var pi=document.getElementById('wPass'),m=document.getElementById('wMeter'),t=document.getElementById('wMeterT');pi.addEventListener('input',function(){var sc=pwScore(pi.value);
+  m.style.width=(pi.value?Math.max(12,sc*25):0)+'%';m.style.background=['#c0503a','#c0503a','#d29a3a','#9cbf4f','#5fbf6a'][sc];t.textContent=pi.value?['Дуже слабкий','Слабкий','Середній','Добрий','Міцний'][sc]+' пароль.':'Довгий пароль з літер і цифр зламати найважче.';});})();
+function wifiSetup(){return new Promise(function(res){var box=document.getElementById('wifi'),tries=0;busy=true;box.hidden=false;document.getElementById('wSsid').focus();
+  function val(n){var r=box.querySelector('input[name='+n+']:checked');return r?r.value:'';}
+  function mark(id,msg){var f=document.getElementById(id);f.classList.toggle('bad',!!msg);f.querySelector('.werr').textContent=msg||'';return msg?1:0;}
+  document.getElementById('wBook').onclick=async function(){box.hidden=true;await openBookAsync('wpa');box.hidden=false;};
+  document.getElementById('wSave').onclick=function(){var ssid=document.getElementById('wSsid').value.trim(),lg=document.getElementById('wLogin').value.trim(),ad=document.getElementById('wAdm').value,pw=document.getElementById('wPass').value,b=val('band'),sec=val('sec'),e=0;
+    e+=mark('f-band',!b?'Обери частоту.':b==='5'?'5 ГГц швидша, але б’є ближче й гірше проходить крізь стіни. До ґанку й тину не дістане.':'');
+    e+=mark('f-ssid',ssid.length<3?'Дай мережі назву, щоб гості її впізнали.':/парол|password|pass/i.test(ssid)||(pw.length>3&&ssid.indexOf(pw)>=0)?'Назву бачать усі перехожі. Не пиши в ній пароль чи щось таємне.':'');
+    e+=mark('f-admin',lg.toLowerCase()==='admin'||ad==='admin'?'Логін і пароль «admin» знає кожен, хто купував таку скриньку. Зміни обидва.':ad.length<8?'Пароль до налаштувань закороткий: потрібно хоча б 8 знаків.':ad===pw?'Пароль до налаштувань має відрізнятися від пароля для гостей, бо гостям його скажуть.':'');
+    e+=mark('f-pass',pw.length<12?'Закороткий. Візьми хоча б 12 знаків.':!(/[a-zа-яіїєґ]/i.test(pw)&&/\d/.test(pw))?'Додай і літери, і цифри.':pwScore(pw)<3?'Такий пароль вгадують першим. Придумай свій, не схожий на «12345678» чи назву корчми.':'');
+    e+=mark('f-sec',!sec?'Обери печатку.':sec==='wpa2'?'WPA2 ще тримає, але є новіша й надійніша.':sec==='wep'?'WEP давно зламали, її відчиняють за хвилини.':sec==='open'?'Без печатки вісті корчми читатиме кожен перехожий.':'');
+    tries++;if(e){if(window.CKS)CKS('ui-wrong',.6);var f=box.querySelector('.wf.bad');if(f)f.scrollIntoView({block:'nearest',behavior:'smooth'});return;}
+    var st=document.createElement('img');st.className='wstamp';st.src='art/scenes/kur/wpa3-seal.png';st.alt='Печатка WPA3';box.querySelector('.wbox').appendChild(st);if(window.CKS)CKS('kur-seal',.9);
+    document.getElementById('wSave').disabled=true;setTimeout(function(){st.remove();document.getElementById('wSave').disabled=false;box.hidden=true;if(window.CKS){CKS('ui-correct');setTimeout(function(){CKS('ui-coins',.8)},550);}var r=tries===1?8:tries===2?4:2;earn(r);toast('+'+r+' біт'+(tries===1?' · з першого разу!':''));res({tries:tries,ssid:ssid});},1500);};});}
+async function talkYaryna(){
+  if(Q==='wpa'){await say([['yaryna','Вітаю в корчмі! Я Ярина. Вежа вже кидає повітряні вісті, гості радіють.'],['yaryna','Тільки повітря відкрите, будь-хто з дороги може підслухати. Філип казав, на нього ставлять печатку. Яку?']]);
+    await say([['yaryna','Ось вона, повітряна скринька, за шинквасом. Тарас привіз її з ярмарку, а як налаштувати, я не тямлю. Поможеш?']]);
+    var ws=await wifiSetup();
+    busy=true;ZMT=2.2;await look(1146,440,1300);SEAL_ON=true;LIT.tavern=0.01;if(window.CKS)CKS('kur-seal',.6);toast('Печатка WPA3 на вивісці корчми');await wait(2600);ZMT=1;unlook();await wait(500);
+    await say([['yaryna','Печатка на місці! Пароль знаємо тільки я і ті гості, кому я сама скажу.'],['yaryna','А мережу так і назву: «'+ws.ssid+'». Гарно!'],['yaryna','Ой, а хто це біжить від шляху?']]);
+    setQ('phish');busy=true;GOB.hidden=false;if(window.CKA)CKA.music('m08-goblin');GOB.x=1560;GOB.y=930;var gq=nearestOpen(P.x+58,P.y+6);await npcTo(GOB,[[1300,760],[1180,668],[Math.max(gq.x,P.x+40),gq.y]]);GOB.facing=GOB.x>P.x?-1:1;P.facing=GOB.x>P.x?1:-1;window.CKS&&CKS('kur-gob-giggle',.8);busy=false;
+    return talkGob();}
+  if(Q==='phish')return talkGob();
+  await say([['yaryna',SEAL_ON?'Печатка тримає. Гості задоволені, вісті читають.':'Заходь, як вежа запрацює. Чекаємо вістей.']]);}
+async function talkGob(){if(Q!=='phish')return;
+  await say([['phisher','Добридень, добридень! Я гонець від старости Мирона. Ось і лист із печаткою, все чесно!'],['phisher','Староста велів перевірити нову печатку. Скажіть-но мені пароль від повітря корчми, я швиденько звірю.']]);
+  await ask('hero','Що скажеш гінцеві?',['Пароль не скажу. Спитаю самого старосту','Скажу, це ж лист від старости','Скажу тільки половину пароля'],'wpa',
+    [null,'Стривай! Глянь на лист: печатка чужа, ще й гачок звисає. Староста живе за два кроки, справжній староста пароль не питав би.','Половина пароля теж допомагає зламнику. Пароль не кажуть нікому, хто його випитує.']);
+  await say([['hero','Пароль я не скажу. Ходімо разом до старости, хай сам підтвердить.'],['phisher','Е-е… Мені вже час! Курка на плиті!']]);
+  busy=true;GOB.run=1;ANIM[1].mode='run';ANIM[1].chase=1;window.CKS&&CKS('kur-gob-run',.8);window.CKS&&CKS('kur-dog-bark',1);setTimeout(function(){window.CKS&&CKS('kur-dog-run',.7);},500);setTimeout(function(){window.CKS&&CKS('kur-dog-bark',.8);},1700);addItem('letter');toast('Фішинг-гобліна викрито! Він кинув лист');
+  await npcTo(GOB,[[1200,668],[1330,760],[1620,990]]);GOB.hidden=true;GOB.run=0;if(window.CKA)CKA.music('m06-kurenivka');ANIM[1].chase=0;ANIM[1].mode='back';busy=false;
+  setQ('silent');}
+async function use(h){
+  if(h===HOT.pole){if(Q==='wan'){await say([['l_wan','На стовпі висить мідна скринька з гніздом. Від неї дріт тягнеться до Великого шляху.']]);
+      await ask('l_wan','Як зветься гніздо, через яке вежа отримує вісті з Великого шляху, тобто з інтернету?',['WAN','LAN','USB'],'wan',
+        [null,'LAN для пристроїв усередині дому чи села. А тут вісті приходять ззовні. Глянь сувій «Гнізда вежі».','USB для флешок і принтерів, інтернет через нього не ходить. Глянь сувій «Гнізда вежі».']);
+      await say([['hero','Це WAN. Сюди приходять вісті з Великого шляху. Тепер їх треба дотягти до вежі, а вона аж на пагорбі.']]);unlock('fiber');setQ('fiber');return;}
+    await say([['l_wan',LINKS.fiber.on?'Скляна нитка тягнеться від скриньки WAN до самої вежі. По ній біжить світло.':'Мідна скринька з гніздом. Від неї дріт тягнеться до Великого шляху.']]);return;}
+  if(h===HOT.tower||h===HOT.swbox){if(Q==='silent2'){await say([['l_switch','Біля комутатора під вежею дріт до крайньої хати висить вільно, штекер ледве тримається.'],['hero','Ось і другий кінець. Вставляю щільно, до клацання.']]);
+      BROKEN=false;LINKS.hutBL.t=0;busy=true;await look(380,420,700);await animLink('hutBL',1000);LIT.hutBL=0.01;window.CKS&&CKS('kur-lamp',.7);toast('Крайня хата отримала вісті!');await wait(1400);unlook();setQ('final');
+      await say([['hero','Тепер вісті дійшли до кожної хати. Треба сказати старості.']]);return;}
+    await say([[ 'l_tower',FIRE?'Вістова вежа горить. Від неї до хат тягнуться дроти, а над селом пливе повітряний сигнал.':'Кам’яна вежа на пагорбі. Нагорі кошик для вогню, але він холодний.']]);return;}
+  if(h===HOT.hutBL){if(Q==='silent'&&inv.indexOf('letter')<0){await say([['l_house','Хата темна. Дріт від вежі до неї дотягли, але вістей нема. Біля стіни кінець дроту звисає.']]);
+      await ask('l_house','Що зробити спершу?',['Перевірю контакти на обох кінцях дроту','Попрошу збудувати хаті окрему вежу','Почекаю, може, саме запрацює'],'fix',
+        [null,'Окрема вежа? Спершу перевір найпростіше. Глянь сувій «Якщо хата мовчить».','Само не запрацює. Глянь у Хроніці сувій «Якщо хата мовчить».']);
+      await say([['hero','Тут штекер випав із гнізда. Вставляю щільно… Клац. Але хата ще мовчить. Треба глянути й другий кінець, під вежею.']]);setQ('silent2');return;}
+    await say([['l_house',LIT.hutBL?'У вікнах світло: вісті дійшли й сюди.':'Тиха хата з білими стінами й соняшниками.']]);return;}
+  if(h===HOT.sign){await say([['l_seal','Червона печатка WPA3 на вивісці. Повітря корчми захищене.']]);return;}}
+function animLink(k,ms){var L=LINKS[k];L.on=true;linkPts(L);ms=Math.max(ms||0,L.len*1.6);var t0=performance.now();window.CKS&&CKS(L.kind==='fiber'?'kur-fiber':'kur-cable',.7);return new Promise(function(res){(function st(){var t=Math.min(1,(performance.now()-t0)/ms);L.t=t;if(t<1)requestAnimationFrame(st);else{if(L.house&&!(L.house==='hutBL'&&BROKEN))window.CKS&&CKS('kur-plug',.8);res();}})();});}
+/* ---- wiring mode: the player picks where each wire goes ---- */
+var WIRE=null;
+function wireMode(cfg){return new Promise(function(res){WIRE={cfg:cfg,sel:null,pt:null,err:0,busy:false,res:res};busy=true;
+  var xs=cfg.nodes.map(function(k){return NODE[k].x}),ys=cfg.nodes.map(function(k){return NODE[k].y}),x0=Math.min.apply(0,xs),x1=Math.max.apply(0,xs),y0=Math.min.apply(0,ys),y1=Math.max.apply(0,ys);
+  ZMT=Math.max(Math.min(BW/W,BH/H),Math.min(BW/(x1-x0+140),BH/(y1-y0+260)))/SC0;FOCUS={x:(x0+x1)/2,y:(y0+y1)/2+20};document.getElementById('wTitle').textContent=cfg.title;wireText();document.getElementById('wHint').hidden=true;document.getElementById('wbar').hidden=false;document.body.classList.add('wiring');});}
+function wireText(){var w=WIRE.cfg;document.getElementById('wText').textContent=WIRE.sel?'Звідси: '+NODE[WIRE.sel].n+'. Тепер торкнись, куди вести.':w.text(WIRE);}
+function wireNodes(){return WIRE.cfg.nodes;}
+function wireHit(p){var r=Math.max(22,30/SC),best=null,bd=1e9;wireNodes().forEach(function(id){var n=NODE[id],d=Math.hypot(p.x-n.x,p.y-n.y);if(d<r&&d<bd){bd=d;best=id;}});return best;}
+async function wireClick(p){if(WIRE.busy)return;var id=wireHit(p);if(!id){WIRE.sel=null;wireText();return;}
+  if(!WIRE.sel||WIRE.sel===id){WIRE.sel=WIRE.sel===id?null:id;if(window.CKS)CKS('ui-click',.5);wireText();return;}
+  var a=WIRE.sel,b=id;WIRE.sel=null;var r=WIRE.cfg.check(a,b);
+  if(typeof r==='string'){WIRE.err++;if(window.CKS)CKS('ui-wrong',.7);toast(r,4200);if(WIRE.err>=2&&WIRE.cfg.hint){var h=document.getElementById('wHint');h.textContent='Підказка: '+WIRE.cfg.hint(WIRE);h.hidden=false;}wireText();return;}
+  if(r.dup){toast('Цей дріт уже прокладено.',2200);wireText();return;}
+  WIRE.busy=true;document.getElementById('wHint').hidden=true;WIRE.err=0;await animLink(r.link,900);if(r.lit){LIT[r.lit]=0.01;window.CKS&&CKS('kur-lamp',.6);}
+  WIRE.busy=false;if(WIRE.cfg.done()){var w=WIRE;WIRE=null;document.getElementById('wbar').hidden=true;document.body.classList.remove('wiring');await wait(700);if(!w.cfg.keep){ZMT=1;unlook();await wait(600);}w.res();}else wireText();}
+function wireDraw(){if(!WIRE)return;var k=1/SC;c.save();wireNodes().forEach(function(id){var n=NODE[id],sel=WIRE.sel===id,pu=.5+.5*Math.sin(T*4+n.x*.01);
+  c.fillStyle='rgba(18,16,13,.55)';c.beginPath();c.arc(n.x,n.y,9*k,0,Math.PI*2);c.fill();c.lineWidth=(sel?3:2)*k;c.strokeStyle=sel?'#fff2c8':'rgba(236,211,156,'+(.6+.4*pu)+')';c.beginPath();c.arc(n.x,n.y,(9+pu*3)*k,0,Math.PI*2);c.stroke();
+  c.fillStyle=sel?'#fff2c8':'#ecd39c';c.beginPath();c.arc(n.x,n.y,3.2*k,0,Math.PI*2);c.fill();
+  c.font='700 '+(12*k)+'px "Alegreya Sans",sans-serif';c.textAlign='center';var tw=c.measureText(n.n).width+10*k;c.fillStyle='rgba(18,16,13,.82)';c.fillRect(n.x-tw/2,n.y+13*k,tw,16*k);c.fillStyle='#ecd39c';c.fillText(n.n,n.x,n.y+25*k);});
+  if(WIRE.sel&&WIRE.pt){var a=NODE[WIRE.sel];c.setLineDash([6*k,5*k]);c.strokeStyle='rgba(255,236,190,.9)';c.lineWidth=2*k;c.beginPath();c.moveTo(a.x,a.y);c.quadraticCurveTo((a.x+WIRE.pt.x)/2,(a.y+WIRE.pt.y)/2+30,WIRE.pt.x,WIRE.pt.y);c.stroke();c.setLineDash([]);}
+  c.restore();}
+function pairIs(a,b,x,y){return (a===x&&b===y)||(a===y&&b===x);}
+
+async function finale(){await say([['myron','Чуєш? У кожній хаті тепер знають, що діється на Великому шляху. Вісті для кожної хати!'],
+  ['myron','Тримай срібний байт від громади. А Тарас передав тобі жупан, бо вечори вже холодні.'],['filip','А я відкрив у Коморі наступний розділ Хроніки. Як будеш готов'+g('ий','а')+', зазирни.']]);
+  addItem('byte');addItem('zhupan');setQ('done');saveKur();if(window.CKA){CKA.sting('m09-quest-done');setTimeout(function(){CKA.vo('intro/n06-kur-done');},2600);}
+  document.getElementById('endText').textContent=hero.name+' '+g('дотягнув','дотягла')+' вісті від Великого шляху до кожної хати: скляна нитка до вежі, комутатор, дріт до кузні, печатка WPA3 на повітрі корчми. А фішинг-гоблін лишився без пароля.';
+  document.getElementById('endRew').innerHTML='<span class="xp">+'+EARN+' біт</span><span><img src="art/items/byte.jpg" alt="">1 байт</span><span><img src="art/items/kur/zhupan.jpg" alt="">Жупан</span><span><img src="art/items/kur/chronicle.jpg" alt="">Комора: Тема 2</span>';
+  setTimeout(function(){document.getElementById('end').hidden=false;document.getElementById('endGo').focus();},500);}
+function saveKur(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.kur={done:true,at:Date.now(),bits:EARN,read:Object.keys(READ)};me.progress.bits=(me.progress.bits||0)+EARN;CK.put(me);}
+document.getElementById('endGo').onclick=function(){location.href='map.html';};
+document.getElementById('endAgain').onclick=function(){location.reload();};
+
+/* ================= update ================= */
+var T=0,last=0,running=false;
+var FOCUS=null,CAMI=false;
+function camTarget(){var f=FOCUS||{x:P.x,y:P.y-40};return{x:VW>=W?(W-VW)/2:Math.max(0,Math.min(W-VW,f.x-VW/2)),y:VH>=H?(H-VH)/2:Math.max(0,Math.min(H-VH,f.y-VH/2))};}
+function camera(dt){if(ZM!==ZMT){var cx=CAMX+VW/2,cy=CAMY+VH/2;ZM+=(ZMT-ZM)*Math.min(1,dt*1.8);if(Math.abs(ZM-ZMT)<.003)ZM=ZMT;SC=SC0*ZM;VW=BW/SC;VH=BH/SC;CAMX=cx-VW/2;CAMY=cy-VH/2;}var t=camTarget();if(!CAMI){CAMX=t.x;CAMY=t.y;CAMI=true;return;}var k=Math.min(1,dt*(FOCUS?2.2:5));CAMX+=(t.x-CAMX)*k;CAMY+=(t.y-CAMY)*k;}
+function look(x,y,ms){FOCUS={x:x,y:y};return wait(ms||0);}
+function unlook(){FOCUS=null;}
+var STEPT=0,CRIT={hens:8,cat:14,well:10};function stepSfx(dt){if(!window.CKS)return;if(P.moving&&!document.hidden){STEPT-=dt;if(STEPT<=0){STEPT=1.35;CKS(P.x>1440-(P.y-440)*.6-10?'kur-steps-stone':'kur-steps',.35);}}else STEPT=0;
+  [['hens',700,740,240,.35],['cat',ANIM[0].x,ANIM[0].y,200,.45],['well',690,500,200,.3]].forEach(function(q){CRIT[q[0]]-=dt;if(CRIT[q[0]]>0)return;CRIT[q[0]]=12+Math.random()*14;if(!busy&&Math.hypot(P.x-q[1],P.y-q[2])<q[3])CKS('kur-'+q[0],q[4]);});}
+var AMBT=0;function ambUpd(dt){stepSfx(dt);AMBT+=dt;if(AMBT<.25||!window.CKA)return;AMBT=0;var near=function(x,y,r){return Math.max(0,1-Math.hypot(P.x-x,(P.y-y)*1.3)/r);};
+  CKA.amb('a06-tavern',.9*near(1100,600,420));CKA.amb('a07-forge',.8*near(1020,320,420));CKA.amb('a08-road',.8*near(1480,700,380));}
+function update(dt){moveEnt(P,dt,130);camera(dt);ambUpd(dt);
+  Object.keys(NPC).forEach(function(k){var n=NPC[k];moveEnt(n,dt,70);n.idle-=dt;if(n.idle<0){n.pose=n.pose?0:1;n.idle=n.pose?1.2+Math.random():3+Math.random()*4;}});
+  if(!GOB.hidden)moveEnt(GOB,dt,GOB.run?210:90);
+  ANIM.forEach(function(a){a.t+=dt;
+    if(a.chase){var tx=GOB.x-40,ty=GOB.y+4,dx=tx-a.x,dy=ty-a.y,d=Math.hypot(dx,dy);if(d>4){a.x+=dx/d*Math.min(d,230*dt);a.y+=dy/d*Math.min(d,230*dt);a.facing=dx<0?-1:1;a.mv=1;}return;}
+    if(a.mode==='back'){var hx_=836,hy=594,ex=hx_-a.x,ey=hy-a.y,ed=Math.hypot(ex,ey);if(ed>3){a.x+=ex/ed*Math.min(ed,90*dt);a.y+=ey/ed*Math.min(ed,90*dt);a.facing=ex<0?-1:1;a.mv=1;}else{a.mode='lie';a.facing=1;a.mv=0;}return;}
+    if(a.k==='dog')return;
+    if(a.tx==null&&a.t>(a.k==='cat'?7:2.5)&&Math.random()<dt*(a.k==='cat'?.15:.6)){a.tx=a.range[0]+Math.random()*(a.range[1]-a.range[0]);a.ty=a.yr[0]+Math.random()*(a.yr[1]-a.yr[0]);a.t=0;}
+    if(a.tx!=null){var dx2=a.tx-a.x,dy2=a.ty-a.y,d2=Math.hypot(dx2,dy2);if(d2<2){a.tx=null;a.mv=0;a.t=0;}else{a.x+=dx2/d2*Math.min(d2,a.sp*dt);a.y+=dy2/d2*Math.min(d2,a.sp*dt);a.facing=dx2<0?-1:1;a.mv=1;}}});
+  Object.keys(LIT).forEach(function(k){if(LIT[k]>0)LIT[k]=Math.min(1,LIT[k]+dt*.8);});
+  if(FIRE>0)FIRE=Math.min(1,FIRE+dt*.6);if(AIR>0)AIR=Math.min(1,AIR+dt*.5);
+  if(MARK){MARK.t+=dt;if(MARK.t>1||!P.moving&&MARK.t>.3)MARK=null;}}
+
+/* ================= draw ================= */
+function sheet(k,f,x,y,sc,facing){var im=IMG[k],m=SPR[k];if(!im||!im.complete||!im.naturalWidth)return false;var w=m.cw*sc,h=m.ch*sc;
+  c.save();c.translate(x,y);if(facing<0)c.scale(-1,1);c.drawImage(im,(f%m.n)*m.cw,0,m.cw,m.ch,-w/2,-h+2*sc,w,h);c.restore();return true;}
+function shadow(x,y,rx,a){c.fillStyle='rgba(30,18,8,'+(a||.3)+')';ell(c,x+2,y,rx,rx*.28);c.fill();}
+function drawNPC(n){var m=SPR[n.id],f;if(n.moving)f=3+Math.floor(T*8)%3;else if(n.talk)f=2;else f=n.pose;
+  shadow(n.x,n.y,15*n.sc/.4);sheet(n.id,f,n.x,n.y,n.sc,n.facing);}
+function drawGob(){if(GOB.hidden)return;var f=GOB.moving?3+Math.floor(T*(GOB.run?12:8))%3:GOB.talk?2:Math.floor(T*1.3)%2;shadow(GOB.x,GOB.y,10);sheet('phisher',f,GOB.x,GOB.y,GOB.sc,GOB.facing);}
+function drawHero(){var o=heroLook();
+  if(hero.sex==='m'&&+hero.hair===0&&+hero.skin===0&&+hero.cloth===0&&IMG.hero_walk.naturalWidth){shadow(P.x,P.y,14,.35);sheet('hero_walk',P.moving?Math.floor(T*9)%6:1,P.x,P.y,.235,P.facing);return;}
+  o.moving=P.moving;o.facing=P.facing;drawPerson(c,P.x,P.y,o,T);}
+function drawAnim(a){var f;
+  if(a.k==='cat')f=a.mv?3+Math.floor(T*6)%3:Math.floor(a.t/1.8)%3;
+  else if(a.k==='dog')f=a.mv?3+Math.floor(T*11)%3:Math.floor(a.t/2.2)%3;
+  else f=a.mv?3+Math.floor(T*7)%3:Math.floor((T+a.t)*2.2)%3;
+  shadow(a.x,a.y,a.k==='dog'?16:a.k==='cat'?10:6,.25);sheet(a.k,f,a.x,a.y,a.sc,a.facing);}
+function socket(x,y,plug){c.save();c.fillStyle='rgba(0,0,0,.35)';c.fillRect(x-5,y-4,12,13);var g=c.createLinearGradient(x-6,0,x+6,0);g.addColorStop(0,'#6e3818');g.addColorStop(.4,'#d48a4c');g.addColorStop(1,'#5a2c12');c.fillStyle=g;c.fillRect(x-6,y-6,12,12);
+  c.strokeStyle='#2a160a';c.lineWidth=.8;c.strokeRect(x-6,y-6,12,12);c.fillStyle='#1a0e06';c.beginPath();c.arc(x,y,2.8,0,Math.PI*2);c.fill();
+  if(plug){c.fillStyle='#c9a45c';c.beginPath();c.arc(x,y,2.2,0,Math.PI*2);c.fill();c.fillStyle='#24170c';c.fillRect(x-1.6,y-9,3.2,5);}c.restore();}
+function drawLink(L){if(!L.on||L.t<=0)return;if(L.house){var hn=NODE[L.house];socket(hn.x,hn.y+4,L.t>=1&&!(L.house==='hutBL'&&BROKEN));}var P=linkPts(L),lim=L.t*L.len,broken=L.house==='hutBL'&&BROKEN,cut=broken?L.len*.9:1e9;
+  c.lineCap='round';c.lineJoin='round';c.beginPath();var last=P[0];c.moveTo(P[0].x,P[0].y);for(var i=1;i<P.length;i++){var p=P[i];if(p.l>lim||p.l>cut)break;c.lineTo(p.x,p.y);last=p;}
+  if(L.t<1&&!broken){var e=ptAt(L,L.t);c.lineTo(e.x,e.y);last=e;}
+  c.strokeStyle='rgba(0,0,0,.18)';c.lineWidth=3.4;c.save();c.translate(1.5,3);c.stroke();c.restore();
+  if(L.kind==='fiber'){c.strokeStyle='#1d2a33';c.lineWidth=2.4;c.stroke();c.strokeStyle='rgba(160,225,255,.75)';c.lineWidth=.9;c.stroke();}
+  else{c.strokeStyle='#24170c';c.lineWidth=2;c.stroke();c.strokeStyle='rgba(214,150,90,.5)';c.lineWidth=.7;c.stroke();}
+  if(broken){c.strokeStyle='#24170c';c.lineWidth=1.8;c.beginPath();c.moveTo(last.x,last.y);c.quadraticCurveTo(last.x+5,last.y+18,last.x-2+Math.sin(T*2)*2,last.y+30);c.stroke();return;}
+  if(L.t<1){c.save();c.globalCompositeOperation='lighter';var g0=c.createRadialGradient(last.x,last.y,0,last.x,last.y,10);g0.addColorStop(0,'rgba(255,240,200,.9)');g0.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=g0;c.fillRect(last.x-10,last.y-10,20,20);c.restore();return;}
+  var col=L.kind==='fiber'?'190,240,255':'255,214,140',k=Math.max(2,Math.round(L.len/260)),sp=(L.kind==='fiber'?150:90)/L.len;
+  c.save();c.globalCompositeOperation='lighter';for(var j=0;j<k;j++){var p2=ptAt(L,(T*sp+j/k)%1),gr=c.createRadialGradient(p2.x,p2.y,0,p2.x,p2.y,5);gr.addColorStop(0,'rgba('+col+',.8)');gr.addColorStop(1,'rgba('+col+',0)');c.fillStyle=gr;c.fillRect(p2.x-5,p2.y-5,10,10);}c.restore();}
+function glows(){c.save();c.globalCompositeOperation='lighter';
+  Object.keys(LIT).forEach(function(k){var a=LIT[k];if(!a)return;var fl=.82+.18*Math.sin(T*3+k.length);HOUSES[k].win.forEach(function(w){var r=16,gr=c.createRadialGradient(w[0],w[1],0,w[0],w[1],r);gr.addColorStop(0,'rgba(255,205,120,'+(.55*a*fl)+')');gr.addColorStop(1,'rgba(255,170,80,0)');c.fillStyle=gr;c.fillRect(w[0]-r,w[1]-r,2*r,2*r);});
+    if(a<1){var h=HOUSES[k].at,r2=60*(1-a)+20,g3=c.createRadialGradient(h[0],h[1],0,h[0],h[1],r2);g3.addColorStop(0,'rgba(255,230,170,'+(.5*(1-a))+')');g3.addColorStop(1,'rgba(255,200,120,0)');c.fillStyle=g3;c.fillRect(h[0]-r2,h[1]-r2,2*r2,2*r2);}});
+  c.restore();}
+function towerFire(){if(!FIRE)return;c.save();c.globalAlpha=FIRE;c.globalCompositeOperation='lighter';var gr=c.createRadialGradient(252,22,0,252,22,70);gr.addColorStop(0,'rgba(255,190,90,.55)');gr.addColorStop(1,'rgba(255,140,40,0)');c.fillStyle=gr;c.fillRect(180,-50,150,150);c.restore();
+  c.save();c.globalAlpha=FIRE;c.globalCompositeOperation='screen';sheet('fire_small',Math.floor(T*12)%8,252,26,.2,1);c.restore();}
+function air(){if(!AIR)return;c.save();c.globalCompositeOperation='lighter';for(var i=0;i<3;i++){var ph=(T*.22+i/3)%1,r=40+ph*1250;c.strokeStyle='rgba(190,230,255,'+(.22*(1-ph)*AIR)+')';c.lineWidth=2;c.beginPath();c.arc(TP.x,TP.y,r,-.15,1.05);c.stroke();}c.restore();}
+function wanBox(){var x=1456,y=292;c.save();
+  c.strokeStyle='#2a1a10';c.lineWidth=2.2;c.beginPath();c.moveTo(x+9,y+20);c.bezierCurveTo(x+40,y+70,x+90,y+60,1590,y+40);c.stroke();
+  c.strokeStyle='rgba(214,140,70,.55)';c.lineWidth=.8;c.beginPath();c.moveTo(x+9,y+19);c.bezierCurveTo(x+40,y+69,x+90,y+59,1590,y+39);c.stroke();
+  c.fillStyle='#3a2414';c.fillRect(x-11,y-2,22,30);
+  var g=c.createLinearGradient(x-10,0,x+10,0);g.addColorStop(0,'#7a3f1c');g.addColorStop(.35,'#d98a4a');g.addColorStop(.6,'#b8672e');g.addColorStop(1,'#5e2f14');c.fillStyle=g;c.fillRect(x-10,y-1,20,28);
+  c.fillStyle='#4a2410';c.fillRect(x-10,y-1,20,4);c.fillStyle='#f0b27a';c.fillRect(x-9,y,18,1);
+  c.fillStyle='#24140a';c.beginPath();c.arc(x,y+14,4.2,0,Math.PI*2);c.fill();c.strokeStyle='#f1c08a';c.lineWidth=1;c.beginPath();c.arc(x,y+14,4.6,0,Math.PI*2);c.stroke();
+  c.fillStyle='#f3c99a';[[-7,4],[7,4],[-7,24],[7,24]].forEach(function(r){c.fillRect(x+r[0]-.7,y+r[1]-.7,1.4,1.4);});
+  if(Q==='wan'&&!busy){var a=.35+.3*Math.sin(T*3.2);c.globalCompositeOperation='lighter';var gg=c.createRadialGradient(x,y+13,0,x,y+13,30);gg.addColorStop(0,'rgba(255,190,110,'+a+')');gg.addColorStop(1,'rgba(255,150,60,0)');c.fillStyle=gg;c.fillRect(x-30,y-17,60,60);}
+  c.restore();}
+function props(){if(SWITCH_ON&&PROP.switch.naturalWidth)c.drawImage(PROP.switch,280,446,40,36);
+  if(SEAL_ON&&PROP['wpa3-seal'].naturalWidth){if(!SEALT)SEALT=T;var ag=T-SEALT,pop=ag<.7?1+1.6*Math.pow(1-ag/.7,2):1,s=pop*(1+.04*Math.sin(T*2));if(ag<2.4){c.save();c.globalCompositeOperation='lighter';var gg=c.createRadialGradient(1146,448,0,1146,448,46);gg.addColorStop(0,'rgba(255,220,150,'+(.6*(1-ag/2.4))+')');gg.addColorStop(1,'rgba(255,180,90,0)');c.fillStyle=gg;c.fillRect(1100,402,92,92);c.restore();}c.save();c.translate(1146,452);c.scale(s,s);c.drawImage(PROP['wpa3-seal'],-11,-19,22,38);c.restore();}}
+function marker(t){if(!t||busy||SCRIPT)return;var x=t.x,y=t.hot?t.y-40:(t.rect?t.rect[1]-10:t.y-(t===GOB?52:78));if(t.rect)x=(t.rect[0]+t.rect[2])/2;y+=Math.sin(T*3)*3;
+  c.fillStyle='rgba(0,0,0,.35)';ell(c,x+1,y+2,10,10);c.fill();var sg=c.createRadialGradient(x-3,y-3,1,x,y,10);sg.addColorStop(0,'#e8c27a');sg.addColorStop(1,'#9a6a2a');c.fillStyle=sg;ell(c,x,y,10,10);c.fill();
+  c.fillStyle='#2a1a0c';c.font='800 14px "Alegreya Sans",sans-serif';c.textAlign='center';c.fillText('!',x,y+5);}
+function label(x,y,txt){c.font='700 12px "Alegreya Sans", sans-serif';c.textAlign='center';var w=c.measureText(txt).width+14;c.fillStyle='rgba(18,16,13,.88)';c.fillRect(x-w/2,y-11,w,17);c.strokeStyle='rgba(201,164,92,.7)';c.lineWidth=1;c.strokeRect(x-w/2+.5,y-10.5,w-1,16);c.fillStyle='#ecd39c';c.fillText(txt,x,y+2);}
+function draw(){var r=cv.getBoundingClientRect();
+  c.setTransform(1,0,0,1,0,0);c.fillStyle='#0d0b08';c.fillRect(0,0,cv.width,cv.height);var k=SC*DPR;c.setTransform(k,0,0,k,-CAMX*k,-CAMY*k);
+  if(bgImg.complete&&bgImg.naturalWidth)c.drawImage(bgImg,0,0,W,H);
+  towerFire();air();wanBox();
+  if(MARK){c.strokeStyle='rgba(236,211,156,'+(.8*(1-MARK.t))+')';c.lineWidth=1.4;ell(c,MARK.x,MARK.y,9+MARK.t*6,3.5+MARK.t*2);c.stroke();}
+  var list=[{y:P.y,f:drawHero}];Object.keys(NPC).forEach(function(q){var n=NPC[q];list.push({y:n.y,f:function(){drawNPC(n)}});});
+  list.push({y:GOB.y,f:drawGob});list.push({y:527,f:function(){if(PROP['well-fg'].naturalWidth)c.drawImage(PROP['well-fg'],608,322);}});ANIM.forEach(function(a){list.push({y:a.y,f:function(){drawAnim(a)}});});
+  Object.keys(POLE).forEach(function(id){if(poleOn(id))list.push({y:POLE[id][1],f:function(){drawPole(id)}});});
+  FG.forEach(function(o){o.s.forEach(function(st){list.push({y:st[2],f:function(){if(o.im.naturalWidth)c.drawImage(o.im,st[0],0,st[1],o.h,o.x+st[0],o.y,st[1],o.h);}});});});
+  list.sort(function(a,b){return a.y-b.y}).forEach(function(e){e.f();});
+  Object.keys(LINKS).forEach(function(q){drawLink(LINKS[q])});glows();props();wireDraw();
+  marker(goal());
+  if(HOV&&!busy&&!SCRIPT){var nm=HOV.name+(HOV.role?' · '+HOV.role:''),lx=HOV.rect?(HOV.rect[0]+HOV.rect[2])/2:HOV.x,ly=HOV.rect?HOV.rect[3]+14:HOV.y+16;label(lx,ly,nm);}}
+function frame(now){var dt=Math.min(.05,(now-last)/1000||0);last=now;T+=dt;update(dt);draw();if(running)requestAnimationFrame(frame);}
+function resize(){var r=cv.getBoundingClientRect();DPR=Math.min(2,window.devicePixelRatio||1);cv.width=Math.max(1,Math.round(r.width*DPR));cv.height=Math.max(1,Math.round(r.height*DPR));
+  SC0=Math.max(r.width/W,r.height/H)*(r.width<700?1.1:1.6);BW=r.width;BH=r.height;SC=SC0*ZM;VW=BW/SC;VH=BH/SC;CAMI=false;}
+window.addEventListener('resize',function(){if(!document.getElementById('game').hidden)resize();});
+
+/* ================= start ================= */
+document.getElementById('iGo').onclick=async function(){document.getElementById('intro').hidden=true;document.getElementById('game').hidden=false;resize();renderInv();updQuest();
+  running=true;last=performance.now();requestAnimationFrame(frame);busy=true;await walkTo(P,1300,740);busy=false;toast('Клацай по землі, щоб іти. Знайди старосту Мирона',3600);};
+inv=[];renderInv();updQuest();
+window.__kur={get W(){return WIRE?{t:WIRE.cfg.title,b:WIRE.busy,sel:WIRE.sel}:null},NODE:NODE,get ZM(){return ZM},get Q(){return Q},P:P,NPC:NPC,HOT:HOT,GOB:GOB,LINKS:LINKS,setQ:setQ,get busy(){return busy||SCRIPT},scr:function(x,y){var r=cv.getBoundingClientRect();return{x:r.left+(x-CAMX)*SC,y:r.top+(y-CAMY)*SC};}};
+})();
+</script>
+<script>if('serviceWorker' in navigator&&location.protocol!=='file:')addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});</script></body>
+</html>
