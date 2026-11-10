@@ -2,6 +2,9 @@
 <html lang="uk">
 <head>
 <meta charset="utf-8"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12100d"><link rel="icon" href="icons/favicon.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes">
+<script src="lib/supabase.js"></script>
+<script src="config.js"></script>
+
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Мапа Кодового королівства</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -108,6 +111,49 @@ return {get:function(){var d=load();d.users=d.users||{};return d;},save:save,
  put:function(u){var d=this.get();d.users[u.email]=u;d.session=u.email;save(d);},
  logout:function(){var d=this.get();d.session=null;save(d);},
  ph:function(p){var h=5381;for(var i=0;i<p.length;i++)h=((h*33)^p.charCodeAt(i))>>>0;return 'h'+h.toString(36);}};})();
+/* ===== CK cloud layer: Supabase sync over the local ck.v1 store =====
+   Local store stays the source for the page (works offline); cloud users carry uid.
+   CK.put(u) -> saved locally at once, pushed to the server (merged there) when online. */
+(function(){
+var C=window.CK_CFG||{};
+if(!window.CK)window.CK=CK;
+CK.cloud=false;CK.ready=Promise.resolve(null);
+if(!C.url||!C.key||!window.supabase||!window.supabase.createClient)return;
+var SKEY='ck.auth';
+var sb;try{sb=supabase.createClient(C.url,C.key,{auth:{storageKey:SKEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit'}});}catch(e){return;}
+CK.sb=sb;CK.cloud=true;
+CK.base=location.origin+location.pathname.replace(/[^\/]*$/,'');
+function mergeP(o,n){o=o||{};n=n||{};var r=Object.assign({},o);Object.keys(n).forEach(function(k){var a=o[k],b=n[k];
+  if(a==null)r[k]=b;else if(typeof a==='number'&&typeof b==='number')r[k]=Math.max(a,b);
+  else if(a&&b&&typeof a==='object'&&typeof b==='object'){r[k]=(a.done&&!b.done)?Object.assign({},b,a):Object.assign({},a,b);}else r[k]=b;});return r;}
+CK.mergeP=mergeP;
+/* server row -> local user record */
+CK.fromRow=function(r,local){local=local||{};return {email:r.email,uid:r.id,role:r.role,approved:!!r.approved,name:r.name||local.name||'',full:r.full_name||'',school:r.school||'',
+  classId:r.class_id||null,cls:(r.class_id&&local.cls&&local.cls.id===r.class_id)?local.cls:null,hero:r.hero||local.hero||null,progress:mergeP(r.progress,local.progress),dirty:!!local.dirty,cloud:true};};
+var _put=CK.put,_logout=CK.logout;
+CK.putLocal=function(u){_put.call(CK,u);};
+var timer=null,busy=false;
+function push(){var u=CK.me();if(!u||!u.uid||!u.dirty||busy)return Promise.resolve();
+  if(navigator.onLine===false)return Promise.resolve();
+  var snap=JSON.stringify([u.hero,u.progress]);
+  busy=true;return sb.rpc('ck_save',{p_hero:u.hero||null,p_progress:u.progress||{},p_name:null}).then(function(res){busy=false;
+    if(res.error)throw res.error;var m=CK.me();if(m&&m.uid===u.uid){var same=JSON.stringify([m.hero,m.progress])===snap;m.progress=mergeP(res.data||{},m.progress);m.dirty=!same;_put.call(CK,m);if(!same){clearTimeout(timer);timer=setTimeout(push,400);}}
+    document.dispatchEvent(new CustomEvent('ck-saved'));
+  }).catch(function(e){busy=false;console.warn('ck sync later',e&&e.message||e);});}
+CK.push=push;
+CK.put=function(u){if(u&&u.uid)u.dirty=true;_put.call(CK,u);if(u&&u.uid){clearTimeout(timer);timer=setTimeout(push,400);}};
+CK.logout=function(){try{localStorage.removeItem(SKEY);}catch(e){}try{sb.auth.signOut({scope:'local'});}catch(e){}_logout.call(CK);};
+/* fetch profile for the signed-in session, merge with local, store */
+CK.pull=function(){return sb.auth.getSession().then(function(r){var s=r.data&&r.data.session;if(!s)return null;
+  return sb.from('profiles').select('*').eq('id',s.user.id).single().then(function(q){if(q.error)throw q.error;
+    var d=CK.get(),loc=d.users[q.data.email]||{};if(loc.uid&&loc.uid!==q.data.id)loc={};
+    var u=CK.fromRow(q.data,loc);_put.call(CK,u);if(u.dirty)push();return u;});});};
+CK.session=function(){return sb.auth.getSession().then(function(r){return r.data&&r.data.session||null;});};
+window.addEventListener('online',function(){push();});
+CK.ready=CK.session().then(function(s){if(!s)return null;var m=CK.me();if(m&&m.uid&&m.dirty)push();return s;}).catch(function(){return null;});
+})();
+
+
 var ME=CK.me();if(!ME){location.replace('index.html');return;}
 var DONE=!!(ME.progress&&ME.progress.camp&&ME.progress.camp.done);
 var LANDS=[

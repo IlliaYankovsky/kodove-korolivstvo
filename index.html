@@ -1,6 +1,9 @@
 <!doctype html>
 <html lang="uk">
 <meta charset="utf-8"><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#12100d"><link rel="icon" href="icons/favicon.png"><link rel="apple-touch-icon" href="icons/apple-touch-icon.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script src="lib/supabase.js"></script>
+<script src="config.js"></script>
+
 <title>Брама Кодового королівства</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -202,6 +205,49 @@ return {get:function(){var d=load();d.users=d.users||{};return d;},save:save,
  put:function(u){var d=this.get();d.users[u.email]=u;d.session=u.email;save(d);},
  logout:function(){var d=this.get();d.session=null;save(d);},
  ph:function(p){var h=5381;for(var i=0;i<p.length;i++)h=((h*33)^p.charCodeAt(i))>>>0;return 'h'+h.toString(36);}};})();
+/* ===== CK cloud layer: Supabase sync over the local ck.v1 store =====
+   Local store stays the source for the page (works offline); cloud users carry uid.
+   CK.put(u) -> saved locally at once, pushed to the server (merged there) when online. */
+(function(){
+var C=window.CK_CFG||{};
+if(!window.CK)window.CK=CK;
+CK.cloud=false;CK.ready=Promise.resolve(null);
+if(!C.url||!C.key||!window.supabase||!window.supabase.createClient)return;
+var SKEY='ck.auth';
+var sb;try{sb=supabase.createClient(C.url,C.key,{auth:{storageKey:SKEY,persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,flowType:'implicit'}});}catch(e){return;}
+CK.sb=sb;CK.cloud=true;
+CK.base=location.origin+location.pathname.replace(/[^\/]*$/,'');
+function mergeP(o,n){o=o||{};n=n||{};var r=Object.assign({},o);Object.keys(n).forEach(function(k){var a=o[k],b=n[k];
+  if(a==null)r[k]=b;else if(typeof a==='number'&&typeof b==='number')r[k]=Math.max(a,b);
+  else if(a&&b&&typeof a==='object'&&typeof b==='object'){r[k]=(a.done&&!b.done)?Object.assign({},b,a):Object.assign({},a,b);}else r[k]=b;});return r;}
+CK.mergeP=mergeP;
+/* server row -> local user record */
+CK.fromRow=function(r,local){local=local||{};return {email:r.email,uid:r.id,role:r.role,approved:!!r.approved,name:r.name||local.name||'',full:r.full_name||'',school:r.school||'',
+  classId:r.class_id||null,cls:(r.class_id&&local.cls&&local.cls.id===r.class_id)?local.cls:null,hero:r.hero||local.hero||null,progress:mergeP(r.progress,local.progress),dirty:!!local.dirty,cloud:true};};
+var _put=CK.put,_logout=CK.logout;
+CK.putLocal=function(u){_put.call(CK,u);};
+var timer=null,busy=false;
+function push(){var u=CK.me();if(!u||!u.uid||!u.dirty||busy)return Promise.resolve();
+  if(navigator.onLine===false)return Promise.resolve();
+  var snap=JSON.stringify([u.hero,u.progress]);
+  busy=true;return sb.rpc('ck_save',{p_hero:u.hero||null,p_progress:u.progress||{},p_name:null}).then(function(res){busy=false;
+    if(res.error)throw res.error;var m=CK.me();if(m&&m.uid===u.uid){var same=JSON.stringify([m.hero,m.progress])===snap;m.progress=mergeP(res.data||{},m.progress);m.dirty=!same;_put.call(CK,m);if(!same){clearTimeout(timer);timer=setTimeout(push,400);}}
+    document.dispatchEvent(new CustomEvent('ck-saved'));
+  }).catch(function(e){busy=false;console.warn('ck sync later',e&&e.message||e);});}
+CK.push=push;
+CK.put=function(u){if(u&&u.uid)u.dirty=true;_put.call(CK,u);if(u&&u.uid){clearTimeout(timer);timer=setTimeout(push,400);}};
+CK.logout=function(){try{localStorage.removeItem(SKEY);}catch(e){}try{sb.auth.signOut({scope:'local'});}catch(e){}_logout.call(CK);};
+/* fetch profile for the signed-in session, merge with local, store */
+CK.pull=function(){return sb.auth.getSession().then(function(r){var s=r.data&&r.data.session;if(!s)return null;
+  return sb.from('profiles').select('*').eq('id',s.user.id).single().then(function(q){if(q.error)throw q.error;
+    var d=CK.get(),loc=d.users[q.data.email]||{};if(loc.uid&&loc.uid!==q.data.id)loc={};
+    var u=CK.fromRow(q.data,loc);_put.call(CK,u);if(u.dirty)push();return u;});});};
+CK.session=function(){return sb.auth.getSession().then(function(r){return r.data&&r.data.session||null;});};
+window.addEventListener('online',function(){push();});
+CK.ready=CK.session().then(function(s){if(!s)return null;var m=CK.me();if(m&&m.uid&&m.dirty)push();return s;}).catch(function(){return null;});
+})();
+
+
 function rnd(i,j){var s=Math.sin(i*127.1+j*311.7)*43758.5453;return s-Math.floor(s);}
 /* ============ demo data ============ */
 var NAMES=['Олеся Коваль','Максим Дяченко','Софія Ткачук','Артем Литвин','Дарина Петренко','Назар Бондар','Вероніка Шевчук','Тимофій Мельник','Анна Кравець','Богдан Олійник','Злата Савчук','Ярослав Гуменюк'];
@@ -449,9 +495,258 @@ function render(){
   if(state.joined)return renderJoined();
   return renderCode();
 }
+/* ===== Gate on Supabase: real accounts, classes, teacher cabinet, admin ===== */
+if(CK.cloud){(function(){
+var sb=CK.sb,$=function(id){return document.getElementById(id)};
+var COLS=['var(--c-r1)','var(--c-r2)','var(--c-r3)','var(--c-r4)'];
+var EMAIL_RE=/^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+JOIN_BASE=CK.base+'index.html#join-';
+state.classes=[];state.roster={};state.mode=null;state.adm=null;
+function fmt(c){c=norm(c);return c.slice(0,4)+'-'+c.slice(4);}
+function clsOf(r,i){return {id:r.id,name:r.name,grade:r.grade,code:fmt(r.code),color:COLS[i%4],students:[]};}
+function netErr(e){var m=(e&&(e.message||e.error_description))||'';return /fetch|network|Failed|Load failed/i.test(m)||navigator.onLine===false;}
+var NET='Немає зв’язку з сервером. Перевірте інтернет і спробуйте ще раз.';
+function busyBtn(b,on,txt){if(!b)return;if(on){b.dataset.t=b.textContent;b.textContent=txt||'Зачекайте…';b.disabled=true;}else{b.textContent=b.dataset.t||b.textContent;b.disabled=false;}}
+function day(t){if(!t)return '—';var d=new Date(t);return d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});}
+/* keep invite code across e-mail confirmation */
+try{if(pre)localStorage.setItem('ck.pre',pre);else if(localStorage.getItem('ck.pre'))pre=localStorage.getItem('ck.pre');}catch(e){}
+function dropPre(){pre=null;try{localStorage.removeItem('ck.pre');}catch(e){}}
+
+/* ---------- auth ---------- */
+var _renderAuth=renderAuth;
+renderAuth=function(){
+  if(state.mode==='mail')return renderMail();
+  if(state.mode==='reset')return renderReset();
+  _renderAuth();
+  var demo=document.querySelector('.demo');if(demo)demo.remove();
+  var keep=$('f-keep');if(keep)keep.closest('label').style.visibility='hidden';
+  var note=document.querySelector('.gate .note');if(note&&!pre)note.textContent='Акаунт і прогрес зберігаються на сервері, тож грати можна з будь-якого пристрою.';
+  var reg=state.tab==='register',teacher=state.role==='teacher';
+  if(reg&&teacher){var p=document.createElement('p');p.className='sub';p.style.fontSize='13px';p.textContent='Акаунт учителя запрацює після підтвердження адміністратором.';$('authForm').querySelector('.btn.gold').after(p);}
+  if($('forgot'))$('forgot').onclick=function(){var e=$('f-email').value.trim();$('e-email').textContent='';$('e-pass').textContent='';
+    if(!EMAIL_RE.test(e)){$('e-email').textContent='Введіть пошту, і ми надішлемо посилання для відновлення пароля.';return;}
+    var b=this;busyBtn(b,1,'Надсилаємо…');
+    sb.auth.resetPasswordForEmail(e,{redirectTo:CK.base+'index.html'}).then(function(r){busyBtn(b,0);
+      if(r.error)$('e-email').textContent=netErr(r.error)?NET:'Не вдалося надіслати лист: '+r.error.message;
+      else toast('Лист для відновлення пароля надіслано на '+e);});};
+  $('authForm').onsubmit=function(ev){ev.preventDefault();
+    var ok=true,set=function(id,msg){var el=$('e-'+id);if(el)el.textContent=msg||'';var f=$('f-'+id);if(f)f.setAttribute('aria-invalid',msg?'true':'false');if(msg)ok=false;};
+    var email=$('f-email').value.trim().toLowerCase(),pass=$('f-pass').value,btn=this.querySelector('.btn.gold');
+    set('email',EMAIL_RE.test(email)?'':'Перевірте адресу пошти: має бути щось на зразок name@school.ua.');
+    var shake=function(){$('authForm').classList.add('shake');setTimeout(function(){$('authForm')&&$('authForm').classList.remove('shake')},400);};
+    if(reg){
+      var nm=$('f-name').value.trim();set('name',nm.length<2?'Вкажіть ім’я, щоб учитель упізнав вас.':'');
+      var school=teacher?$('f-school').value.trim():'';if(teacher)set('school',school.length<3?'Вкажіть назву закладу освіти.':'');
+      set('pass',pass.length<8?'Пароль закороткий: потрібно щонайменше 8 символів.':'');
+      set('pass2',$('f-pass2').value!==pass?'Паролі не збігаються.':'');
+      if(!ok)return shake();
+      busyBtn(btn,1,'Створюємо…');
+      sb.auth.signUp({email:email,password:pass,options:{emailRedirectTo:CK.base+'index.html',data:{role:state.role,name:nm.split(' ')[0],full:nm,school:school}}}).then(function(r){busyBtn(btn,0);
+        if(r.error){var m=r.error.message||'';
+          if(/registered|exists/i.test(m))set('email','Акаунт з такою поштою вже є. Перейдіть на вкладку «Вхід».');
+          else if(/password/i.test(m))set('pass','Сервер не прийняв пароль: '+m);
+          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося зареєструватися: '+m);return shake();}
+        if(r.data&&r.data.user&&r.data.user.identities&&r.data.user.identities.length===0){set('email','Акаунт з такою поштою вже є. Перейдіть на вкладку «Вхід».');return shake();}
+        if(r.data&&r.data.session)return enter();
+        state.mode='mail';state.mail=email;render();});
+    }else{
+      set('pass',pass.length<1?'Введіть пароль.':'');
+      if(!ok)return shake();
+      busyBtn(btn,1,'Входимо…');
+      sb.auth.signInWithPassword({email:email,password:pass}).then(function(r){busyBtn(btn,0);
+        if(r.error){var m=r.error.message||'';
+          if(/confirm/i.test(m)){state.mode='mail';state.mail=email;return render();}
+          if(/invalid/i.test(m))set('pass','Неправильна пошта або пароль.');
+          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося увійти: '+m);return shake();}
+        enter();});
+    }};
+};
+function renderMail(){
+  app.innerHTML='<div class="gate">'+logo+'<div class="card"><span class="seal">✉</span><div style="margin-top:8px"><h2>Підтвердіть пошту</h2>'+
+  '<p class="sub">Ми надіслали лист на <b>'+esc(state.mail||'')+'</b>. Відкрийте його й натисніть посилання. Воно поверне вас сюди вже з входом.</p>'+
+  '<p class="sub" style="font-size:13px">Листа немає? Перевірте «Спам» або «Промоакції».</p></div>'+
+  '<button class="btn gold" id="m-again">Надіслати лист ще раз</button><div class="row"><button type="button" class="link" id="m-back">Назад до входу</button></div></div></div>';
+  $('m-back').onclick=function(){state.mode=null;state.tab='login';render();};
+  $('m-again').onclick=function(){var b=this;busyBtn(b,1,'Надсилаємо…');sb.auth.resend({type:'signup',email:state.mail,options:{emailRedirectTo:CK.base+'index.html'}}).then(function(r){busyBtn(b,0);toast(r.error?(netErr(r.error)?NET:r.error.message):'Лист надіслано ще раз');});};
+}
+function renderReset(){
+  app.innerHTML='<div class="gate">'+logo+'<form class="card" id="rsForm" novalidate><span class="seal">🗝</span><div style="margin-top:8px"><h2>Новий пароль</h2><p class="sub">Придумайте новий пароль до свого акаунта.</p></div>'+
+  '<div class="field"><label for="f-np">Пароль</label><div class="inp"><input id="f-np" type="password" autocomplete="new-password" placeholder="Не менше 8 символів"></div><span class="err" id="e-np"></span></div>'+
+  '<div class="field"><label for="f-np2">Повтори пароль</label><div class="inp"><input id="f-np2" type="password" autocomplete="new-password"></div><span class="err" id="e-np2"></span></div>'+
+  '<button class="btn gold" type="submit">Зберегти пароль</button></form></div>';
+  $('rsForm').onsubmit=function(e){e.preventDefault();var p=$('f-np').value,b=this.querySelector('.btn');$('e-np').textContent='';$('e-np2').textContent='';
+    if(p.length<8){$('e-np').textContent='Пароль закороткий: потрібно щонайменше 8 символів.';return;}
+    if($('f-np2').value!==p){$('e-np2').textContent='Паролі не збігаються.';return;}
+    busyBtn(b,1);sb.auth.updateUser({password:p}).then(function(r){busyBtn(b,0);
+      if(r.error){$('e-np').textContent=netErr(r.error)?NET:'Не вдалося змінити пароль: '+r.error.message;return;}
+      toast('Пароль змінено');state.mode=null;enter();});};
+}
+
+/* ---------- session ---------- */
+var entering=false;
+function enter(){if(entering)return;entering=true;
+  app.innerHTML='<div class="gate">'+logo+'<div class="card"><p class="sub" style="text-align:center">Відчиняємо браму…</p></div></div>';
+  CK.pull().then(function(u){entering=false;if(u)login(u);else{state.user=null;render();}})
+  .catch(function(e){entering=false;var me=CK.me();if(me&&me.uid)login(me);else{toast(NET);render();}});}
+login=function(u){CK.putLocal(u);state.user=u;state.joined=null;state.hero=state.hero||{};state.heroDone=false;
+  if(u.hero){state.hero=Object.assign({},u.hero);state.heroDone=true;}
+  if(u.role==='teacher'||u.role==='admin'){render();return loadTeacher();}
+  if(!u.classId){render();return;}
+  if(u.cls&&u.cls.id===u.classId){state.joined=u.cls;render();}
+  sb.from('classes').select('id,name,grade').eq('id',u.classId).maybeSingle().then(function(q){
+    if(q.error||!q.data){if(!state.joined)render();return;}
+    var c={id:q.data.id,name:q.data.name,grade:q.data.grade,color:COLS[(q.data.grade||0)%4]};
+    var had=!!state.joined;state.joined=c;u.cls=c;CK.putLocal(u);if(!had)render();});
+};
+var _logout=logout;logout=function(){state.classes=[];state.roster={};state.adm=null;state.mode=null;_logout();};
+
+/* ---------- student: join by code ---------- */
+var _renderCode=renderCode;
+renderCode=function(){_renderCode();
+  var hint=document.querySelector('#codeForm .hint');if(hint)hint.innerHTML='<b>Де взяти код?</b><span>Учитель надсилає посилання-запрошення або диктує код з 8 символів. Якщо відкрити посилання, код підставиться сам.</span>';
+  $('codeForm').onsubmit=function(e){e.preventDefault();
+    var code='',k;for(k=0;k<8;k++)code+=$('c'+k).value;
+    var err=$('e-code'),cb=$('cb'),btn=this.querySelector('.btn.gold');err.textContent='';cb.classList.remove('bad');
+    var bad=function(t){window.CKS&&CKS('ui-error',.5);err.textContent=t;cb.classList.add('bad');cb.classList.add('shake');setTimeout(function(){cb.classList.remove('shake')},400);};
+    if(code.length<8)return bad('Код має 8 символів. Заповни всі клітинки.');
+    busyBtn(btn,1,'Шукаємо клас…');
+    sb.rpc('ck_join_class',{p_code:code}).then(function(r){busyBtn(btn,0);
+      if(r.error)return bad(netErr(r.error)?NET:'Не вдалося приєднатися: '+r.error.message);
+      var row=r.data&&r.data[0];if(!row)return bad('Такої печатки не знайдено. Перевір код в учителя.');
+      var c={id:row.id,name:row.name,grade:row.grade,teacher:row.teacher,color:COLS[(row.grade||0)%4]};
+      state.user.classId=c.id;state.user.cls=c;CK.putLocal(state.user);window.CKS&&CKS('gate-seal');state.joined=c;dropPre();render();});
+  };
+};
+
+/* ---------- teacher ---------- */
+function stRow(p){var pr=p.progress||{},camp=!!(pr.camp&&pr.camp.done),kur=!!(pr.kur&&pr.kur.done);
+  return {uid:p.id,name:(p.full_name||p.name||p.email),email:p.email,hero:p.hero&&p.hero.name||'',camp:camp,kur:kur,bits:pr.bits||0,quests:(camp?1:0)+(kur?1:0),at:p.updated_at,isNew:!p.hero};}
+allSt=function(c){return (state.roster[c.id]||[]).map(stRow);};
+function loadTeacher(){var u=state.user;
+  return sb.from('classes').select('id,name,grade,code,created_at').eq('teacher_id',u.uid).order('created_at').then(function(q){
+    if(q.error)throw q.error;state.classes=q.data.map(clsOf);var ids=state.classes.map(function(c){return c.id});
+    if(!ids.length){state.roster={};return;}
+    return sb.from('profiles').select('id,email,name,full_name,hero,progress,updated_at,class_id').in('class_id',ids).eq('role','student').order('full_name').then(function(p){
+      if(p.error)throw p.error;state.roster={};p.data.forEach(function(s){(state.roster[s.class_id]=state.roster[s.class_id]||[]).push(s);});});
+  }).then(function(){if(state.user===u&&!state.making)renderTeacher();})
+  .catch(function(e){toast(netErr(e)?NET:'Не вдалося завантажити класи: '+(e.message||e));});}
+function kpi(n,t){return '<div class="kpi"><b>'+n+'</b><span>'+t+'</span></div>';}
+renderTeacher=function(){var u=state.user,adm=u.role==='admin';
+  document.body.classList.add('cab-on');
+  if(u.role==='teacher'&&!u.approved){
+    app.innerHTML='<div class="gate">'+logo+'<div class="card"><span class="seal">⌛</span><div style="margin-top:8px"><h2>Акаунт очікує підтвердження</h2>'+
+    '<p class="sub">Вітаємо, '+esc(u.name)+'! Адміністратор має підтвердити, що ви вчитель'+(u.school?' ('+esc(u.school)+')':'')+'. Після цього тут з’явиться кабінет із класами.</p></div>'+
+    '<button class="btn gold" id="p-check">Перевірити ще раз</button><div class="row"><span class="sub" style="font-size:13px">'+esc(u.email)+'</span><button type="button" class="link" id="out">Вийти</button></div></div></div>';
+    $('out').onclick=logout;$('p-check').onclick=function(){var b=this;busyBtn(b,1);CK.pull().then(function(n){busyBtn(b,0);if(n){state.user=n;if(n.approved){toast('Акаунт підтверджено!');loadTeacher();}else toast('Ще не підтверджено');renderTeacher();}}).catch(function(){busyBtn(b,0);toast(NET);});};
+    return;}
+  var tab=state.ttab;
+  var html='<div class="cab"><div class="top"><h1>'+(adm?'Кабінет адміністратора':'Кабінет учителя')+'</h1><div class="who"><span>Ви увійшли як <b>'+esc(u.full||u.name)+'</b></span><button class="btn plain sm" id="out">Вийти</button></div></div>'+
+  '<div class="nav" role="tablist"><button role="tab" id="n-cl" aria-selected="'+(tab==='classes')+'">Мої класи</button><button role="tab" id="n-w" aria-selected="'+(tab==='world')+'">Світ завдань</button>'+
+  (adm?'<button role="tab" id="n-adm" aria-selected="'+(tab==='admin')+'">Адміністрування</button>':'')+'</div>';
+  if(tab==='world')html+=worldView();
+  else if(tab==='admin'&&adm)html+=adminView();
+  else if(state.openClass){var c=state.classes.filter(function(c){return c.id===state.openClass})[0];html+=c?classView(c):classesView();}
+  else html+=classesView();
+  app.innerHTML=html+'</div>';bindTeacher();
+};
+classesView=function(){
+  var h='<div class="sheet"><div class="sh-top"><div><h2>Мої класи</h2><p class="sub">У кожного класу свій код і посилання. Учні приєднуються лише за ними.</p></div><span style="display:flex;gap:8px"><button class="btn plain sm" id="reload">Оновити</button><button class="btn gold sm" id="new">+ Створити клас</button></span></div>';
+  if(state.creating)h+='<form class="newform" id="nf"><b>Новий клас</b><div class="grid"><div class="field"><label for="nc-grade">Паралель</label><select id="nc-grade"><option>7</option><option selected>8</option><option>9</option></select></div><div class="field"><label for="nc-name">Назва класу</label><input id="nc-name" maxlength="40" placeholder="8-А"></div></div><span class="err" id="e-nc"></span><div class="row" style="justify-content:flex-start"><button class="btn gold sm" type="submit">Створити й отримати код</button><button class="btn plain sm" type="button" id="cancel">Скасувати</button></div></form>';
+  if(state.created){var c=state.created;h+='<div class="invite"><b>Клас '+esc(c.name)+' створено. Надішліть учням одне з двох:</b>'+
+    '<div class="lnk"><span style="font-size:13px;color:var(--muted);width:80px">Код</span><code>'+c.code+'</code><button class="copy" data-copy="'+c.code+'">Копіювати</button></div>'+
+    '<div class="lnk"><span style="font-size:13px;color:var(--muted);width:80px">Посилання</span><code>'+JOIN_BASE+norm(c.code)+'</code><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Копіювати</button></div></div>';}
+  if(!state.classes.length&&!state.creating)h+='<div class="empty">Класів ще немає. Натисніть «Створити клас», і гра видасть код та посилання для учнів.</div>';
+  h+='<div class="classes">'+state.classes.map(function(c){var s=allSt(c),cp=s.filter(function(x){return x.camp}).length,kr=s.filter(function(x){return x.kur}).length;
+   return '<div class="cls" style="--c:'+c.color+'" role="button" tabindex="0" data-open="'+c.id+'"><div class="h"><b>'+esc(c.name)+'</b><span class="tag" style="--c:'+c.color+'">'+c.grade+' клас</span></div>'+
+   '<div class="kv"><span>Учнів</span><b>'+s.length+'</b><span>Пройшли вступ</span><b>'+cp+'</b><span>Пройшли Куренівку</span><b>'+kr+'</b></div>'+
+   '<div class="codechip"><span class="cv">'+c.code+'</span><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Посилання</button></div></div>';}).join('')+'</div></div>';
+  return h;
+};
+var OK='<span class="pill" style="color:var(--ok)">✓</span>',NO='<span style="color:var(--muted)">—</span>';
+classView=function(c){var s=allSt(c),cp=s.filter(function(x){return x.camp}).length,kr=s.filter(function(x){return x.kur}).length,bits=s.reduce(function(a,x){return a+x.bits},0);
+  return '<div class="sheet"><button class="back" id="back">← Усі класи</button>'+
+  '<div class="sh-top"><div><h2>Клас '+esc(c.name)+'</h2><p class="sub">Поступ учнів цього класу. Учні не бачать результатів одне одного.</p></div>'+
+  '<div class="codechip" style="min-width:260px"><span class="cv">'+c.code+'</span><span style="display:flex;gap:6px;flex-wrap:wrap"><button class="copy" data-copy="'+c.code+'">Код</button><button class="copy" data-copy="'+JOIN_BASE+norm(c.code)+'">Посилання</button><button class="copy" id="regen" data-id="'+c.id+'">Новий код</button></span></div></div>'+
+  '<div class="kpis">'+kpi(s.length,'учнів у класі')+kpi(cp,'пройшли вступ (табір)')+kpi(kr,'пройшли Куренівку')+kpi(bits,'біт зароблено разом')+'</div>'+
+  (s.length?'<div class="tbl"><table><thead><tr><th>Учень</th><th>Герой</th><th>Табір</th><th>Куренівка</th><th>Біти</th><th>Остання активність</th><th></th></tr></thead><tbody>'+
+   s.map(function(x){return '<tr><td>'+esc(x.name)+'<br><span class="sub" style="font-size:12px">'+esc(x.email)+'</span></td><td>'+(x.hero?esc(x.hero):'<span class="pill" style="color:var(--muted)">Створює героя</span>')+'</td><td>'+(x.camp?OK:NO)+'</td><td>'+(x.kur?OK:NO)+'</td><td class="n">'+x.bits+'</td><td style="font-size:13px">'+day(x.at)+'</td>'+
+     '<td><button class="btn plain sm" data-rm="'+x.uid+'" data-nm="'+esc(x.name)+'">Прибрати</button></td></tr>';}).join('')+'</tbody></table></div>':
+   '<div class="empty">У класі ще немає учнів. Надішліть їм код <b style="font-family:var(--f-code)">'+c.code+'</b> або посилання.</div>')+
+  '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn plain sm" id="reload">Оновити</button><button class="btn plain sm" id="delcls" data-id="'+c.id+'" style="color:var(--bad)">Видалити клас</button></div></div>';
+};
+bindTeacher=function(){
+  $('out').onclick=logout;
+  $('n-cl').onclick=function(){state.ttab='classes';state.openClass=null;renderTeacher()};
+  $('n-w').onclick=function(){state.ttab='world';renderTeacher()};
+  if($('n-adm'))$('n-adm').onclick=function(){state.ttab='admin';renderTeacher();loadAdmin();};
+  if($('nq'))$('nq').onclick=function(){toast('Конструктор квестів буде наступним етапом')};
+  if($('reload'))$('reload').onclick=function(){loadTeacher();};
+  if($('new'))$('new').onclick=function(){state.creating=true;state.created=null;renderTeacher();$('nc-name').focus()};
+  if($('cancel'))$('cancel').onclick=function(){state.creating=false;renderTeacher()};
+  if($('nf'))$('nf').onsubmit=function(e){e.preventDefault();var g=+$('nc-grade').value,n=$('nc-name').value.trim(),b=this.querySelector('.btn.gold');
+    if(!n){$('e-nc').textContent='Вкажіть назву класу, наприклад 8-А.';return;}
+    if(state.classes.some(function(c){return c.name.toLowerCase()===n.toLowerCase()})){$('e-nc').textContent='Клас з такою назвою вже є.';return;}
+    busyBtn(b,1);sb.from('classes').insert({name:n,grade:g}).select('id,name,grade,code,created_at').single().then(function(r){busyBtn(b,0);
+      if(r.error){$('e-nc').textContent=netErr(r.error)?NET:'Не вдалося створити клас: '+r.error.message;return;}
+      var c=clsOf(r.data,state.classes.length);state.classes.push(c);state.created=c;state.creating=false;renderTeacher();});};
+  if($('back'))$('back').onclick=function(){state.openClass=null;renderTeacher()};
+  if($('regen'))$('regen').onclick=function(e){e.stopPropagation();var id=this.dataset.id;
+    if(!confirm('Створити новий код? Старий код і посилання перестануть діяти. Учні, які вже в класі, залишаться.'))return;
+    sb.rpc('ck_regen_code',{p_class:id}).then(function(r){if(r.error)return toast(netErr(r.error)?NET:r.error.message);
+      var c=state.classes.filter(function(x){return x.id===id})[0];if(c)c.code=fmt(r.data);toast('Новий код: '+fmt(r.data)+'. Старий більше не працює.');renderTeacher();});};
+  if($('delcls'))$('delcls').onclick=function(){var id=this.dataset.id,c=state.classes.filter(function(x){return x.id===id})[0];
+    if(!c||!confirm('Видалити клас '+c.name+'? Учні залишаться зі своїм прогресом, але вийдуть із класу. Цю дію не можна скасувати.'))return;
+    sb.from('classes').delete().eq('id',id).then(function(r){if(r.error)return toast(netErr(r.error)?NET:r.error.message);state.openClass=null;toast('Клас '+c.name+' видалено');loadTeacher();});};
+  document.querySelectorAll('[data-rm]').forEach(function(b){b.onclick=function(){var id=b.dataset.rm;
+    if(!confirm('Прибрати '+b.dataset.nm+' з класу? Прогрес учня збережеться, і він зможе повернутися за кодом.'))return;
+    sb.rpc('ck_remove_student',{p_student:id}).then(function(r){if(r.error||!r.data)return toast(r.error&&netErr(r.error)?NET:'Не вдалося прибрати учня');toast(b.dataset.nm+' більше не в класі');loadTeacher();});};});
+  document.querySelectorAll('[data-open]').forEach(function(d){var go=function(){state.openClass=d.dataset.open;state.created=null;renderTeacher()};d.onclick=go;d.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}}});
+  document.querySelectorAll('[data-copy]').forEach(function(b){b.onclick=function(e){e.stopPropagation();copy(b.dataset.copy,b)}});
+  document.querySelectorAll('[data-ap]').forEach(function(b){b.onclick=function(){var ok=b.dataset.ok==='1';busyBtn(b,1);
+    sb.rpc('ck_approve',{p_user:b.dataset.ap,p_ok:ok}).then(function(r){if(r.error){busyBtn(b,0);return toast(netErr(r.error)?NET:r.error.message);}toast(ok?'Учителя підтверджено':'Підтвердження відкликано');loadAdmin();});};});
+};
+
+/* ---------- admin ---------- */
+function loadAdmin(){
+  Promise.all([
+    sb.from('profiles').select('id,email,name,full_name,school,approved,created_at').eq('role','teacher').order('created_at',{ascending:false}),
+    sb.rpc('ck_admin_classes'),
+    sb.from('profiles').select('id',{count:'exact',head:true}).eq('role','student')
+  ]).then(function(r){var e=r[0].error||r[1].error||r[2].error;if(e)throw e;
+    state.adm={teachers:r[0].data,classes:r[1].data,students:r[2].count||0};if(state.ttab==='admin')renderTeacher();})
+  .catch(function(e){toast(netErr(e)?NET:'Не вдалося завантажити: '+(e.message||e));});}
+function adminView(){var a=state.adm;
+  if(!a)return '<div class="sheet"><p class="sub">Завантажуємо…</p></div>';
+  var pend=a.teachers.filter(function(t){return!t.approved}),ok=a.teachers.filter(function(t){return t.approved});
+  var trow=function(t,btn){return '<tr><td>'+esc(t.full_name||t.name)+'<br><span class="sub" style="font-size:12px">'+esc(t.email)+'</span></td><td>'+esc(t.school||'—')+'</td><td style="font-size:13px">'+day(t.created_at)+'</td><td>'+btn+'</td></tr>';};
+  return '<div class="sheet"><div class="sh-top"><div><h2>Адміністрування</h2><p class="sub">Підтвердження вчителів і всі класи гри.</p></div><button class="btn plain sm" id="reload-a">Оновити</button></div>'+
+  '<div class="kpis">'+kpi(pend.length,'вчителів чекають')+kpi(ok.length,'вчителів працює')+kpi(a.classes.length,'класів')+kpi(a.students,'учнів зареєстровано')+'</div>'+
+  '<h3 style="margin:18px 0 8px">Чекають на підтвердження</h3>'+
+  (pend.length?'<div class="tbl"><table><thead><tr><th>Учитель</th><th>Заклад</th><th>Зареєструвався</th><th></th></tr></thead><tbody>'+pend.map(function(t){return trow(t,'<button class="btn gold sm" data-ap="'+t.id+'" data-ok="1">Підтвердити</button>');}).join('')+'</tbody></table></div>':'<div class="empty">Нових заявок немає.</div>')+
+  '<h3 style="margin:18px 0 8px">Підтверджені вчителі</h3>'+
+  (ok.length?'<div class="tbl"><table><thead><tr><th>Учитель</th><th>Заклад</th><th>Зареєструвався</th><th></th></tr></thead><tbody>'+ok.map(function(t){return trow(t,'<button class="btn plain sm" data-ap="'+t.id+'" data-ok="0">Відкликати</button>');}).join('')+'</tbody></table></div>':'<div class="empty">Поки немає.</div>')+
+  '<h3 style="margin:18px 0 8px">Усі класи</h3>'+
+  (a.classes.length?'<div class="tbl"><table><thead><tr><th>Заклад</th><th>Учитель</th><th>Клас</th><th>Учнів</th><th>Код</th></tr></thead><tbody>'+a.classes.map(function(c){return '<tr><td>'+esc(c.school||'—')+'</td><td>'+esc(c.teacher)+'</td><td>'+esc(c.name)+'</td><td class="n">'+c.students+'</td><td style="font-family:var(--f-code)">'+fmt(c.code)+'</td></tr>';}).join('')+'</tbody></table></div>':'<div class="empty">Класів ще немає.</div>')+
+  '</div>';}
+document.addEventListener('click',function(e){if(e.target&&e.target.id==='reload-a')loadAdmin();});
+
+/* ---------- boot ---------- */
+var _render=render;render=function(){_render();if(state.user&&(state.user.role==='admin'||state.user.role==='teacher')&&!state.making)document.body.classList.add('cab-on');};
+window.CKBoot=function(){state.user=null;state.making=false;
+  sb.auth.onAuthStateChange(function(ev,s){
+    if(ev==='PASSWORD_RECOVERY'){state.mode='reset';state.user=null;render();}
+    else if(ev==='SIGNED_IN'&&s&&!state.user&&state.mode!=='reset'){state.mode=null;setTimeout(enter,0);}
+  });
+  CK.ready.then(function(s){if(state.mode==='reset')return;var me=CK.me();
+    if(s)enter();
+    else if(me&&me.uid&&navigator.onLine===false)login(me);
+    else{if(me)CK.logout();render();}});
+};
+})();}
+
 if(location.hash==='#hero'){state.user={email:'olesia@school.ua',role:'student',name:'Олеся'};state.joined=state.classes[0];state.making=true;}
 window.addEventListener('hashchange',function(){var m=(location.hash||'').match(/^#join-([A-Za-z0-9]{8})$/);if(m){pre=m[1].toUpperCase();if(!state.user){state.role='student';}render();}});
-(function(){var me=CK.me();if(me&&location.hash!=='#hero'&&!/^#join-/.test(location.hash)){login(me);return;}render();})();
+if(window.CKBoot)CKBoot();else (function(){var me=CK.me();if(me&&location.hash!=='#hero'&&!/^#join-/.test(location.hash)){login(me);return;}render();})();
 })();
 
 </script>
