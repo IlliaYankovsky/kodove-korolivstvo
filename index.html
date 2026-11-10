@@ -506,6 +506,7 @@ function fmt(c){c=norm(c);return c.slice(0,4)+'-'+c.slice(4);}
 function clsOf(r,i){return {id:r.id,name:r.name,grade:r.grade,code:fmt(r.code),color:COLS[i%4],students:[]};}
 function netErr(e){var m=(e&&(e.message||e.error_description))||'';return /fetch|network|Failed|Load failed/i.test(m)||navigator.onLine===false;}
 var NET='Немає зв’язку з сервером. Перевірте інтернет і спробуйте ще раз.';
+function uaMsg(m){if(/rate limit|too many|security purposes/i.test(m))return 'Забагато спроб за короткий час. Зачекайте кілька хвилин і спробуйте ще раз.';return m;}
 function busyBtn(b,on,txt){if(!b)return;if(on){b.dataset.t=b.textContent;b.textContent=txt||'Зачекайте…';b.disabled=true;}else{b.textContent=b.dataset.t||b.textContent;b.disabled=false;}}
 function day(t){if(!t)return '—';var d=new Date(t);return d.toLocaleDateString('uk-UA',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString('uk-UA',{hour:'2-digit',minute:'2-digit'});}
 /* keep invite code across e-mail confirmation */
@@ -527,7 +528,7 @@ renderAuth=function(){
     if(!EMAIL_RE.test(e)){$('e-email').textContent='Введіть пошту, і ми надішлемо посилання для відновлення пароля.';return;}
     var b=this;busyBtn(b,1,'Надсилаємо…');
     sb.auth.resetPasswordForEmail(e,{redirectTo:CK.base+'index.html'}).then(function(r){busyBtn(b,0);
-      if(r.error)$('e-email').textContent=netErr(r.error)?NET:'Не вдалося надіслати лист: '+r.error.message;
+      if(r.error)$('e-email').textContent=netErr(r.error)?NET:'Не вдалося надіслати лист: '+uaMsg(r.error.message);
       else toast('Лист для відновлення пароля надіслано на '+e);});};
   $('authForm').onsubmit=function(ev){ev.preventDefault();
     var ok=true,set=function(id,msg){var el=$('e-'+id);if(el)el.textContent=msg||'';var f=$('f-'+id);if(f)f.setAttribute('aria-invalid',msg?'true':'false');if(msg)ok=false;};
@@ -545,7 +546,7 @@ renderAuth=function(){
         if(r.error){var m=r.error.message||'';
           if(/registered|exists/i.test(m))set('email','Акаунт з такою поштою вже є. Перейдіть на вкладку «Вхід».');
           else if(/password/i.test(m))set('pass','Сервер не прийняв пароль: '+m);
-          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося зареєструватися: '+m);return shake();}
+          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося зареєструватися: '+uaMsg(m));return shake();}
         if(r.data&&r.data.user&&r.data.user.identities&&r.data.user.identities.length===0){set('email','Акаунт з такою поштою вже є. Перейдіть на вкладку «Вхід».');return shake();}
         if(r.data&&r.data.session)return enter();
         state.mode='mail';state.mail=email;render();});
@@ -557,7 +558,7 @@ renderAuth=function(){
         if(r.error){var m=r.error.message||'';
           if(/confirm/i.test(m)){state.mode='mail';state.mail=email;return render();}
           if(/invalid/i.test(m))set('pass','Неправильна пошта або пароль.');
-          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося увійти: '+m);return shake();}
+          else if(netErr(r.error))set('email',NET);else set('email','Не вдалося увійти: '+uaMsg(m));return shake();}
         enter();});
     }};
 };
