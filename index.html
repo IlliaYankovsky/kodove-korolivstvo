@@ -289,10 +289,10 @@ function renderAuth(){
    '<span class="seal">{ }</span>'+
    '<div class="tabs" role="tablist"><button type="button" role="tab" id="t-login" aria-selected="'+!reg+'">Вхід</button><button type="button" role="tab" id="t-reg" aria-selected="'+reg+'">Реєстрація</button></div>'+
    '<div><h2>'+(reg?'Створи свій обліковий запис':'Брама королівства')+'</h2><p class="sub">'+(reg?'Обери, хто ти, і заповни поля нижче.':'Увійди за допомогою пошти та пароля.')+'</p></div>'+
-   '<div class="roles" role="radiogroup" aria-label="Тип акаунта">'+
+   (reg?'<div class="roles" role="radiogroup" aria-label="Тип акаунта">'+
      '<button type="button" class="role" role="radio" id="r-student" aria-checked="'+!teacher+'"><svg><use href="#ic-student"/></svg><span><b>Учень</b><small>Проходжу квести й бої</small></span></button>'+
      '<button type="button" class="role" role="radio" id="r-teacher" aria-checked="'+teacher+'"><svg><use href="#ic-teacher"/></svg><span><b>Вчитель</b><small>Створюю класи та завдання</small></span></button>'+
-   '</div>'+
+   '</div>':'')+
    (reg?'<div class="field"><label for="f-name">'+(teacher?'Ім’я та по батькові':'Ім’я та прізвище')+'</label><div class="inp"><input id="f-name" autocomplete="name" placeholder="'+(teacher?'Ірина Петрівна':'Олеся Коваль')+'"></div><span class="err" id="e-name"></span></div>':'')+
    (reg&&teacher?'<div class="field"><label for="f-school">Заклад освіти</label><div class="inp"><input id="f-school" placeholder="Ліцей №12, м. Житомир"></div><span class="err" id="e-school"></span></div>':'')+
    '<div class="field"><label for="f-email">Електронна пошта</label><div class="inp"><input id="f-email" type="email" autocomplete="email" placeholder="name@school.ua"></div><span class="err" id="e-email"></span></div>'+
@@ -308,8 +308,8 @@ function renderAuth(){
   var $=function(id){return document.getElementById(id)};
   $('t-login').onclick=function(){state.tab='login';renderAuth()};
   $('t-reg').onclick=function(){state.tab='register';renderAuth()};
-  $('r-student').onclick=function(){state.role='student';renderAuth()};
-  $('r-teacher').onclick=function(){state.role='teacher';renderAuth()};
+  if($('r-student')){$('r-student').onclick=function(){state.role='student';renderAuth()};
+  $('r-teacher').onclick=function(){state.role='teacher';renderAuth()};}
   $('eye').onclick=function(){var p=$('f-pass');var s=p.type==='password';p.type=s?'text':'password';this.textContent=s?'Сховати':'Показати'};
   if($('forgot'))$('forgot').onclick=function(){var e=$('f-email').value.trim();$('e-email').textContent='';$('e-pass').textContent='';
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e)){$('e-email').textContent='Введіть пошту, і ми надішлемо посилання для відновлення пароля.';return;}
@@ -337,7 +337,7 @@ function renderAuth(){
 function login(u){var d=CK.get(),ex=d.users[u.email];if(ex)u=ex;else d.users[u.email]=u;d.session=u.email;CK.save(d);state.user=u;
   state.joined=u.classId?(state.classes.filter(function(c){return c.id===u.classId})[0]||null):null;
   if(u.hero){state.hero=Object.assign({},u.hero);state.heroDone=true;}render();}
-function logout(){CK.logout();state.making=false;state.heroDone=false;state.user=null;state.joined=null;state.openClass=null;state.created=null;state.tab='login';render();}
+function logout(){CK.logout();state.playing=false;state.making=false;state.heroDone=false;state.user=null;state.joined=null;state.openClass=null;state.created=null;state.tab='login';render();}
 
 /* ============ STUDENT: secret code ============ */
 function renderCode(){
@@ -384,7 +384,7 @@ function avg(c){if(!allSt(c).length)return null;var a=allSt(c).filter(function(s
 function accColor(a){return a>=80?'var(--ok)':a>=60?'var(--warn)':'var(--bad)';}
 function status(s){if(s.real&&s.done)return'<span class="pill" style="color:var(--ok)">Пройшов вступ</span>';if(s.isNew)return'<span class="pill" style="color:var(--muted)">Щойно приєднався</span>';if(s.acc>=80)return'<span class="pill" style="color:var(--ok)">Йде впевнено</span>';if(s.acc>=60)return'<span class="pill" style="color:var(--warn)">Варто повторити</span>';return'<span class="pill" style="color:var(--bad)">Потрібна допомога</span>';}
 function renderTeacher(){
-  var html='<div class="cab"><div class="top"><h1>Кабінет учителя</h1><div class="who"><span>Ви увійшли як <b>'+esc(state.user.name)+'</b></span><button class="btn plain sm" id="out">Вийти</button></div></div>'+
+  var html='<div class="cab"><div class="top"><h1>Кабінет учителя</h1><div class="who"><span>Ви увійшли як <b>'+esc(state.user.name)+'</b></span><button class="btn gold sm" id="play">Грати</button><button class="btn plain sm" id="out">Вийти</button></div></div>'+
   '<div class="nav" role="tablist"><button role="tab" id="n-cl" aria-selected="'+(state.ttab==='classes')+'">Класи</button><button role="tab" id="n-w" aria-selected="'+(state.ttab==='world')+'">Світ завдань</button></div>';
   if(state.ttab==='world')html+=worldView();
   else if(state.openClass)html+=classView(state.classes.filter(function(c){return c.id===state.openClass})[0]);
@@ -423,7 +423,7 @@ function worldView(){
 }
 function bindTeacher(){
   var $=function(id){return document.getElementById(id)};
-  $('out').onclick=logout;
+  $('out').onclick=logout;$('play').onclick=playAsHero;
   $('n-cl').onclick=function(){state.ttab='classes';renderTeacher()};
   $('n-w').onclick=function(){state.ttab='world';renderTeacher()};
   if($('nq'))$('nq').onclick=function(){toast('Конструктор квестів буде наступним етапом')};
@@ -479,19 +479,24 @@ function renderMaker(){var h=state.hero,src=PORTRAITS[heroKey(h)];
     state.user.hero=Object.assign({},h);CK.put(state.user);window.CKS&&CKS('gate-sign');state.making=false;state.heroDone=true;render();};
 }
 function renderReady(){var h=state.hero,src=PORTRAITS[heroKey(h)];
-  app.innerHTML='<div class="gate ready">'+logo+'<div class="card"><span class="seal">✦</span><div class="joined"><h2>'+esc(h.name)+' вирушає в дорогу</h2><p class="sub">'+(h.sex==='m'?'Учень':'Учениця')+' · '+HAIR[h.sex][h.hair][0].toLowerCase()+' · шкіра '+SKIN[h.skin][0].toLowerCase()+' · одяг «'+CLOTH[h.cloth][0]+'»</p>'+
+  app.innerHTML='<div class="gate ready">'+logo+'<div class="card"><span class="seal">✦</span><div class="joined"><h2>'+esc(h.name)+' вирушає в дорогу</h2><p class="sub">'+(isStaff()?(h.sex==='m'?'Герой':'Героїня'):(h.sex==='m'?'Учень':'Учениця'))+' · '+HAIR[h.sex][h.hair][0].toLowerCase()+' · шкіра '+SKIN[h.skin][0].toLowerCase()+' · одяг «'+CLOTH[h.cloth][0]+'»</p>'+
   '<p class="sub">Попереду табір на узліссі. Вогнище ледь жевріє, а Ганна вже чекає на допомогу.</p></div><button class="btn gold" id="camp">На мапу королівства</button><div class="row"><button type="button" class="link" id="redo">Змінити героя</button><button type="button" class="link" id="out">Вийти</button></div></div></div>';
   document.getElementById('camp').onclick=function(){location.href='map.html'};
   document.getElementById('redo').onclick=function(){state.heroDone=false;state.making=true;render();};
   document.getElementById('out').onclick=function(){state.heroDone=false;state.making=false;logout();};
+  if(isStaff()){var cb=document.createElement('button');cb.type='button';cb.className='link';cb.id='tocab';cb.textContent='До кабінету';document.getElementById('redo').before(cb);
+    cb.onclick=function(){state.playing=false;render();};}
 }
+function isStaff(){return !!(state.user&&(state.user.role==='teacher'||state.user.role==='admin'));}
+function playAsHero(){state.playing=true;document.body.classList.remove('cab-on');if(!state.heroDone)state.making=true;render();}
 function render(){
-  document.body.classList.toggle('cab-on',!!(state.user&&state.user.role==='teacher'));
+  document.body.classList.toggle('cab-on',isStaff()&&!state.playing&&!state.making);
   document.body.classList.toggle('make-on',!!state.making);
   if(state.user&&state.making)return renderMaker();
+  if(isStaff()&&!state.playing)return renderTeacher();
   if(state.user&&state.heroDone)return renderReady();
   if(!state.user)return renderAuth();
-  if(state.user.role==='teacher')return renderTeacher();
+  if(isStaff())return renderTeacher();
   if(state.joined)return renderJoined();
   return renderCode();
 }
@@ -629,7 +634,7 @@ function loadTeacher(){var u=state.user;
     if(!ids.length){state.roster={};return;}
     return sb.from('profiles').select('id,email,name,full_name,hero,progress,updated_at,class_id').in('class_id',ids).eq('role','student').order('full_name').then(function(p){
       if(p.error)throw p.error;state.roster={};p.data.forEach(function(s){(state.roster[s.class_id]=state.roster[s.class_id]||[]).push(s);});});
-  }).then(function(){if(state.user===u&&!state.making)renderTeacher();})
+  }).then(function(){if(state.user===u&&!state.making&&!state.playing)renderTeacher();})
   .catch(function(e){toast(netErr(e)?NET:'Не вдалося завантажити класи: '+(e.message||e));});}
 function kpi(n,t){return '<div class="kpi"><b>'+n+'</b><span>'+t+'</span></div>';}
 renderTeacher=function(){var u=state.user,adm=u.role==='admin';
@@ -637,11 +642,11 @@ renderTeacher=function(){var u=state.user,adm=u.role==='admin';
   if(u.role==='teacher'&&!u.approved){
     app.innerHTML='<div class="gate">'+logo+'<div class="card"><span class="seal">⌛</span><div style="margin-top:8px"><h2>Акаунт очікує підтвердження</h2>'+
     '<p class="sub">Вітаємо, '+esc(u.name)+'! Адміністратор має підтвердити, що ви вчитель'+(u.school?' ('+esc(u.school)+')':'')+'. Після цього тут з’явиться кабінет із класами.</p></div>'+
-    '<button class="btn gold" id="p-check">Перевірити ще раз</button><div class="row"><span class="sub" style="font-size:13px">'+esc(u.email)+'</span><button type="button" class="link" id="out">Вийти</button></div></div></div>';
-    $('out').onclick=logout;$('p-check').onclick=function(){var b=this;busyBtn(b,1);CK.pull().then(function(n){busyBtn(b,0);if(n){state.user=n;if(n.approved){toast('Акаунт підтверджено!');loadTeacher();}else toast('Ще не підтверджено');renderTeacher();}}).catch(function(){busyBtn(b,0);toast(NET);});};
+    '<button class="btn gold" id="p-check">Перевірити ще раз</button><button type="button" class="link" id="p-play">Поки що зіграти самому</button><div class="row"><span class="sub" style="font-size:13px">'+esc(u.email)+'</span><button type="button" class="link" id="out">Вийти</button></div></div></div>';
+    $('out').onclick=logout;$('p-play').onclick=playAsHero;$('p-check').onclick=function(){var b=this;busyBtn(b,1);CK.pull().then(function(n){busyBtn(b,0);if(n){state.user=n;if(n.approved){toast('Акаунт підтверджено!');loadTeacher();}else toast('Ще не підтверджено');renderTeacher();}}).catch(function(){busyBtn(b,0);toast(NET);});};
     return;}
   var tab=state.ttab;
-  var html='<div class="cab"><div class="top"><h1>'+(adm?'Кабінет адміністратора':'Кабінет учителя')+'</h1><div class="who"><span>Ви увійшли як <b>'+esc(u.full||u.name)+'</b></span><button class="btn plain sm" id="out">Вийти</button></div></div>'+
+  var html='<div class="cab"><div class="top"><h1>'+(adm?'Кабінет адміністратора':'Кабінет учителя')+'</h1><div class="who"><span>Ви увійшли як <b>'+esc(u.full||u.name)+'</b></span><button class="btn gold sm" id="play">Грати</button><button class="btn plain sm" id="out">Вийти</button></div></div>'+
   '<div class="nav" role="tablist"><button role="tab" id="n-cl" aria-selected="'+(tab==='classes')+'">Мої класи</button><button role="tab" id="n-w" aria-selected="'+(tab==='world')+'">Світ завдань</button>'+
   (adm?'<button role="tab" id="n-adm" aria-selected="'+(tab==='admin')+'">Адміністрування</button>':'')+'</div>';
   if(tab==='world')html+=worldView();
@@ -676,7 +681,7 @@ classView=function(c){var s=allSt(c),cp=s.filter(function(x){return x.camp}).len
   '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn plain sm" id="reload">Оновити</button><button class="btn plain sm" id="delcls" data-id="'+c.id+'" style="color:var(--bad)">Видалити клас</button></div></div>';
 };
 bindTeacher=function(){
-  $('out').onclick=logout;
+  $('out').onclick=logout;$('play').onclick=playAsHero;
   $('n-cl').onclick=function(){state.ttab='classes';state.openClass=null;renderTeacher()};
   $('n-w').onclick=function(){state.ttab='world';renderTeacher()};
   if($('n-adm'))$('n-adm').onclick=function(){state.ttab='admin';renderTeacher();loadAdmin();};
@@ -732,7 +737,7 @@ function adminView(){var a=state.adm;
 document.addEventListener('click',function(e){if(e.target&&e.target.id==='reload-a')loadAdmin();});
 
 /* ---------- boot ---------- */
-var _render=render;render=function(){_render();if(state.user&&(state.user.role==='admin'||state.user.role==='teacher')&&!state.making)document.body.classList.add('cab-on');};
+var _render=render;render=function(){_render();if(state.user&&(state.user.role==='admin'||state.user.role==='teacher')&&!state.making&&!state.playing)document.body.classList.add('cab-on');};
 window.CKBoot=function(){state.user=null;state.making=false;
   sb.auth.onAuthStateChange(function(ev,s){
     if(ev==='PASSWORD_RECOVERY'){state.mode='reset';state.user=null;render();}
