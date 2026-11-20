@@ -446,8 +446,8 @@ var FX=(function(){
    birds.b.forEach(function(b){var x=birds.x+b.dx,y=birds.y+b.dy,w=Math.sin(T*9+b.ph)*3.5;g.beginPath();g.moveTo(x-6,y-w);g.quadraticCurveTo(x-3,y-2-w*.3,x,y);g.quadraticCurveTo(x+3,y-2-w*.3,x+6,y-w);g.stroke();});
    g.globalAlpha=1;if(birds.x<-120||birds.x>WW+120){birds=null;nextBirds=14+Math.random()*16;}}
   // fog
-  Object.keys(FT).forEach(function(id,k){var L=LANDS.find(function(l){return l.id===id}),e=FOG[id],tgt=(L.state==='locked'&&!L._rev)?(api.hover===id?.55:1):0;
-   FA[id]+=(tgt-FA[id])*Math.min(1,dt*(L._rev?.75:3));if(FA[id]<.004&&tgt===0)return;if(!api.fogOn)return;
+  Object.keys(FT).forEach(function(id,k){var L=LANDS.find(function(l){return l.id===id}),e=FOG[id],tgt=((L.state==='locked'||(REVEAL&&id==='r1'))&&!L._rev)?(api.hover===id&&L.state==='locked'?.55:1):0;
+   FA[id]+=(tgt-FA[id])*Math.min(1,dt*(L._rev?.55:3));if(FA[id]<.004&&tgt===0)return;if(!api.fogOn)return;
    var ex=1+(L._rev?(1-FA[id])*.45:0),amp=RM?0:1;
    FT[id].forEach(function(t,j){var ox=Math.sin(T*.11+k*1.7+j*2.1)*22*(j?-1:1)*amp,oy=Math.cos(T*.08+k+j)*9*amp,br=(1+Math.sin(T*.13+k+j*3)*.025*amp)*ex,w=t.w*br,h=t.h*br;
     g.globalAlpha=FA[id]*(j?.7:1);g.drawImage(t.c,e[0]-w/2+ox+(L._rev?(j?-1:1)*(1-FA[id])*60:0),e[1]-h/2+oy,w,h);});});
@@ -463,6 +463,7 @@ if(REVEAL){var pinR1=document.getElementById('pin-r1');
    if(t<5.4)requestAnimationFrame(step);else{show(1);go();}}
   requestAnimationFrame(step);}}
 
+(function(){if(ME.role!=='teacher'&&ME.role!=='admin'){var gb=document.getElementById('gameBtn');if(gb)gb.remove();var ht=document.querySelector('p.hint');if(ht)ht.textContent=ht.textContent.replace(', а «Ігровий шар» ховає позначки й хмари.','.');}})();
 (function(){var b=document.getElementById('meBox'),h=ME.hero;b.className='mebox';b.innerHTML=(h?'<img src="art/heroes/'+h.sex+'-'+h.hair+'-'+h.skin+'-'+h.cloth+'.jpg" alt=""><span><b>'+h.name.replace(/</g,'&lt;')+'</b><small>'+(DONE?'Вступ пройдено':'Вступ: табір')+'</small></span>':'<span><b>'+(ME.name||'').replace(/</g,'&lt;')+'</b><small>'+(ME.role==='teacher'?'Учитель':'Учень')+'</small></span>')+
  '<a class="tbtn" href="index.html">'+(ME.role==='teacher'?'Кабінет':'Профіль')+'</a><button class="tbtn" id="outBtn">Вийти</button>';
  document.getElementById('outBtn').onclick=function(){CK.logout();location.href='index.html';};})();

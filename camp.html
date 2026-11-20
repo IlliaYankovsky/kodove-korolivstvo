@@ -163,7 +163,7 @@ body:has(#dlg:not([hidden])) .tomap,body:has(#end:not([hidden])) .tomap{display:
         <span class="eyebrow">Квест виконано</span>
         <h1>Вогонь на узліссі</h1>
         <p id="endText"></p>
-        <div class="rewards"><span class="xp">+50 досвіду</span><span><img src="art/items/axe.jpg" alt="">Сокира</span><span><img src="art/places/kurenivka.jpg" alt="" style="object-position:30% 50%">Відкрито: Куренівка</span></div>
+        <div class="rewards"><span class="xp">+50 досвіду</span><span><img src="art/places/kurenivka.jpg" alt="" style="object-position:30% 50%">Відкрито: Куренівка</span></div>
         <div class="acts"><button type="button" class="btn gold" id="endGo">На мапу: до Куренівки</button><button type="button" class="btn plain" id="endAgain">Пройти ще раз</button></div>
       </div>
     </div>
@@ -702,10 +702,13 @@ cv.addEventListener('pointerdown',function(e){if(busy)return;if(sel>=0){closeMen
   if(p.x>1160&&p.x<1440&&p.y>100&&p.y<350){approach(wagon.x-40,wagon.y+wagon.ry,26,function(){toast('Старий критий віз. Завтра Сірко й Рябко повезуть його до Куренівки.')});return;}
   if(p.x>140&&p.x<300&&p.y>370&&p.y<500){approach(pile.x+30,pile.y+pile.ry,26,function(){toast('Запас Остапа. Ці поліна сирі, для вогнища не годяться.')});return;}
   if(!inEll(p.x,p.y,1.0)){toast('Там темний ліс. Без світла туди не можна.');var a=Math.atan2((p.y-ECY)/ERY,(p.x-ECX)/ERX);p.x=ECX+Math.cos(a)*ERX*.93;p.y=ECY+Math.sin(a)*ERY*.93;}
+  if(blocked(p.x,p.y)){var fr=freeNear(p.x,p.y);p.x=fr.x;p.y=fr.y;}
   P.action=null;P.tx=p.x;P.ty=p.y;P.onArrive=null;P.wp=null;P.noWp=false;window.CKS&&CKS('camp-steps',.4,{gap:1300});
 });
 function approach(x,y,reach,fn){reach=reach||30;if(Math.hypot(P.x-x,P.y-y)<=reach+12){P.tx=null;P.facing=x<P.x?-1:1;fn();return;}
   var a=Math.atan2(P.y-y,P.x-x),best=null;for(var k=0;k<12&&!best;k++){var aa=a+(k%2?1:-1)*Math.ceil(k/2)*.5,tx=x+Math.cos(aa)*reach,ty=y+Math.sin(aa)*reach*.8;if(!blocked(tx,ty))best=[tx,ty];}if(!best)best=[x+Math.cos(a)*reach,y+Math.sin(a)*reach*.8];P.side=0;P.tx=best[0];P.ty=best[1];P.wp=null;P.noWp=false;P.action={x:x,y:y,reach:reach,fn:fn};window.CKS&&CKS('camp-steps',.4,{gap:1300});}
+/* Nearest walkable point to (x,y), for clicks that land on an obstacle. */
+function freeNear(x,y){if(!blocked(x,y))return {x:x,y:y};for(var r=6;r<=200;r+=6){var best=null,bd=1e9;for(var k=0;k<24;k++){var a=k/24*Math.PI*2,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r*.7;if(blocked(px,py))continue;var dd=Math.hypot(px-P.x,py-P.y);if(dd<bd){bd=dd;best={x:px,y:py};}}if(best)return best;}return {x:P.x,y:P.y};}
 /* A free spot near (x,y) that the hero can walk to: inside the clearing and outside every obstacle; prefers the side facing the clearing centre. */
 function dropSpot(x,y){var a0=Math.atan2(ECY-y,ECX-x);for(var r=0;r<=150;r+=12){for(var k=0;k<10;k++){var a=a0+(k%2?1:-1)*Math.ceil(k/2)*.45,px=x+Math.cos(a)*r,py=y+Math.sin(a)*r*.7;if(inEll(px,py,.86)&&!blocked(px,py)&&!blocked(px,py+10))return {x:px,y:py};}}return {x:P.x,y:P.y+8};}
 function pickup(gi){if(!addItem(gi.id,gi.n)){toast('Немає місця: усі три віконця зайняті.');flashFull();return;}ground.splice(ground.indexOf(gi),1);window.CKS&&CKS('ui-item',.8);toast('Підібрано: '+ITEMS[gi.id].n);}
@@ -731,15 +734,20 @@ function segBlock(ax,ay,bx,by){var own=hitOb(ax,ay),L=Math.hypot(bx-ax,by-ay),n=
 function detour(e){var o=segBlock(e.x,e.y,e.tx,e.ty);if(!o||o.edge)return null;var best=null;
   for(var k=0;k<12;k++){var a=k/12*Math.PI*2,cx=o.x+Math.cos(a)*(o.rx+40),cy=o.y+Math.sin(a)*(o.ry+30);if(blocked(cx,cy))continue;if(segBlock(e.x,e.y,cx,cy))continue;var c2=Math.hypot(cx-e.x,cy-e.y)+Math.hypot(e.tx-cx,e.ty-cy)+(segBlock(cx,cy,e.tx,e.ty)?200:0);if(!best||c2<best[2])best=[cx,cy,c2];}
   return best?{x:best[0],y:best[1]}:null;}
-function moveEnt(e,dt,sp){if(e.tx==null){e.moving=false;e.wp=null;return;}
-  if(e===P&&!e.wp&&!e.noWp){e.wp=detour(e);e.noWp=!e.wp;}
-  if(e.wp){var wx=e.wp.x-e.x,wy=e.wp.y-e.y,wd=Math.hypot(wx,wy);if(wd<6){e.wp=null;e.noWp=false;}else{var ws=Math.min(wd,sp*dt);e.facing=wx<-.5?-1:wx>.5?1:e.facing;e.x+=wx/wd*ws;e.y+=wy/wd*ws;e.moving=true;return;}}
+function heroStop(e){e.tx=null;e.wp=null;e.side=0;e.stuck=0;e.moving=false;e.gk=null;var cb=e.onArrive;e.onArrive=null;if(cb)cb();}
+function moveEnt(e,dt,sp){if(e.tx==null){e.moving=false;e.wp=null;e.gk=null;return;}
+  if(e===P){var tk=Math.round(e.tx)+','+Math.round(e.ty);if(e.tk!==tk){e.tk=tk;e.wpn=0;}
+    if(!e.wp&&!e.noWp){e.wp=e.wpn<3?detour(e):null;e.noWp=!e.wp;if(e.wp)e.wpn++;}
+    /* no real progress for a while (sliding back and forth against an obstacle) -> stop where we are */
+    var gx=e.wp?e.wp.x:e.tx,gy=e.wp?e.wp.y:e.ty,gd=Math.hypot(gx-e.x,gy-e.y),gk=(e.wp?'w':'t')+Math.round(gx)+','+Math.round(gy);
+    if(e.gk!==gk){e.gk=gk;e.gd=gd;e.gt=0;}else if(gd<e.gd-4){e.gd=gd;e.gt=0;}else{e.gt+=dt;if(e.gt>.35){heroStop(e);return;}}}
+  if(e.wp){var wx=e.wp.x-e.x,wy=e.wp.y-e.y,wd=Math.hypot(wx,wy);if(wd<6){e.wp=null;e.noWp=false;}else{var ws=Math.min(wd,sp*dt);e.facing=wx<-wd*.4?-1:wx>wd*.4?1:e.facing;e.x+=wx/wd*ws;e.y+=wy/wd*ws;e.moving=true;return;}}
   var dx=e.tx-e.x,dy=e.ty-e.y,d=Math.hypot(dx,dy);
   if(d<3){e.tx=null;e.moving=false;e.side=0;var cb=e.onArrive;e.onArrive=null;if(cb)cb();return;}
-  var st=Math.min(d,sp*dt),nx=e.x+dx/d*st,ny=e.y+dy/d*st;e.facing=dx<-.5?-1:dx>.5?1:e.facing;
+  var st=Math.min(d,sp*dt),nx=e.x+dx/d*st,ny=e.y+dy/d*st;if(e!==P)e.facing=dx<-.5?-1:dx>.5?1:e.facing;
   if(e===P){var base=Math.atan2(dy,dx),ok=false,tries=[0,.5,-.5,1,-1,1.4,-1.4,1.8,-1.8];if(e.side)tries=tries.map(function(a){return a*e.side});
-    for(var ti=0;ti<tries.length;ti++){var an=base+tries[ti],qx=e.x+Math.cos(an)*st,qy=e.y+Math.sin(an)*st;if(!blocked(qx,qy)){if(ti>0&&!e.side)e.side=tries[ti]>0?1:-1;e.x=qx;e.y=qy;ok=true;break;}}
-    if(!ok){e.stuck=(e.stuck||0)+dt;if(e.stuck>.4){e.stuck=0;e.side=0;e.tx=null;e.moving=false;var cb2=e.onArrive;e.onArrive=null;if(cb2)cb2();return;}}}
+    for(var ti=0;ti<tries.length;ti++){var an=base+tries[ti],qx=e.x+Math.cos(an)*st,qy=e.y+Math.sin(an)*st;if(!blocked(qx,qy)){if(ti>0&&d<14){heroStop(e);return;}if(ti>0&&!e.side)e.side=tries[ti]>0?1:-1;var mx=qx-e.x;e.facing=mx<-st*.4?-1:mx>st*.4?1:e.facing;e.x=qx;e.y=qy;ok=true;break;}}
+    if(!ok){e.stuck=(e.stuck||0)+dt;if(e.stuck>.4){heroStop(e);return;}}}
   else{e.x=nx;e.y=ny;}
   e.moving=true;}
 var last=performance.now(),T=0,running=false;
@@ -795,7 +803,7 @@ document.getElementById('iGo').onclick=function(){if(!bgImg.complete){bgImg.onlo
   var back=loadSt();resize();renderInv();updQuest();running=true;last=performance.now();requestAnimationFrame(frame);
   if(back&&window.CKA&&Q==='done')CKA.music('m05-camp-fire');
   setTimeout(function(){toast(back?(Q==='done'?'Ти знову в таборі. Вогонь палає.':'Прогрес збережено: продовжуємо з того самого місця.'):'Клацай або торкайся землі, щоб іти. Підійди до людей біля вогнища.',4200);if(back)outHint();},400);};
-window.__dbg={HOV:function(){return HOV},ground:function(){return ground},anna:anna,STIR:STIR,ostapO:ostap,ox2:ox2,annaToStir:annaToStir,setQ:function(q){Q=q},P:P,ox:ox,parts:parts,dropSpot:dropSpot,trees:trees,inv:function(){return inv},Q:function(){return Q},anna:anna,ostap:ostap,hero:hero,fire:fire,talkAnna:function(){return talkAnna()},give:function(id,n){addItem(id,n)}};
+window.__dbg={moveEnt:function(e,dt,sp){moveEnt(e,dt,sp)},blocked:function(x,y){return blocked(x,y)},HOV:function(){return HOV},ground:function(){return ground},anna:anna,STIR:STIR,ostapO:ostap,ox2:ox2,annaToStir:annaToStir,setQ:function(q){Q=q},P:P,ox:ox,parts:parts,dropSpot:dropSpot,trees:trees,inv:function(){return inv},Q:function(){return Q},anna:anna,ostap:ostap,hero:hero,fire:fire,talkAnna:function(){return talkAnna()},give:function(id,n){addItem(id,n)}};
 })();
 </script>
 <a class="tomap" href="map.html">← Мапа</a>
