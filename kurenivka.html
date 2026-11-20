@@ -429,7 +429,7 @@ function drawPerson(g,x,y,o,t){
 var W=1586,H=992;
 function img(src){var i=new Image();i.src=src;return i;}
 var bgImg=img('art/scenes/kurenivka.jpg');
-var SPR={"myron": {"n": 6, "cw": 104, "ch": 155}, "filip": {"n": 6, "cw": 115, "ch": 155}, "taras": {"n": 6, "cw": 131, "ch": 164}, "yaryna": {"n": 6, "cw": 115, "ch": 154}, "danylo": {"n": 6, "cw": 129, "ch": 156}, "phisher": {"n": 6, "cw": 143, "ch": 154}, "cat": {"n": 6, "cw": 155, "ch": 79}, "dog": {"n": 6, "cw": 239, "ch": 91}, "hen_b": {"n": 6, "cw": 65, "ch": 57}, "hen_w": {"n": 6, "cw": 67, "ch": 56}};
+var SPR={"cart_toward":{"n":6,"cw":118,"ch":247},"cart_away":{"n":6,"cw":154,"ch":241},"myron": {"n": 6, "cw": 104, "ch": 155}, "filip": {"n": 6, "cw": 115, "ch": 155}, "taras": {"n": 6, "cw": 131, "ch": 164}, "yaryna": {"n": 6, "cw": 115, "ch": 154}, "danylo": {"n": 6, "cw": 129, "ch": 156}, "phisher": {"n": 6, "cw": 143, "ch": 154}, "cat": {"n": 6, "cw": 155, "ch": 79}, "dog": {"n": 6, "cw": 239, "ch": 91}, "hen_b": {"n": 6, "cw": 65, "ch": 57}, "hen_w": {"n": 6, "cw": 67, "ch": 56}};
 SPR.hero_walk={n:6,cw:172,ch:254};SPR.fire_small={n:8,cw:115.125,ch:133};
 var IMG={hero_walk:img('art/sprites/hero-walk.png'),fire_small:img('art/sprites/fire-small.jpg')};
 Object.keys(SPR).forEach(function(k){if(!IMG[k])IMG[k]=img('art/sprites/kur/'+k+'.png');});
@@ -478,6 +478,7 @@ var NPC={
   yaryna:npc('yaryna',992,610,-1,.39,'Ярина','корчмарка')};
 var GOB=npc('phisher',1560,930,-1,.3,'Гонець','каже, що від старости');GOB.pic='art/mobs/phisher.jpg';GOB.hidden=true;
 var WHO={hero:null};Object.keys(NPC).forEach(function(k){var n=NPC[k];WHO[k]={n:n.name,r:n.role,p:n.pic};});
+WHO.hanna={n:'Ганна',r:'з табору на узліссі',p:'art/npcs/hanna.jpg'};WHO.ostap={n:'Остап',r:'дроворуб',p:'art/npcs/ostap.jpg'};
 WHO.phisher={n:'Гонець',r:'каже, що від старости',p:'art/mobs/phisher.jpg'};
 WHO.goblin={n:'Фішинг-гоблін',r:'викрито',p:'art/mobs/phisher.jpg'};
 WHO.l_wan={n:'Стовп при дорозі',r:'огляд',p:'art/scenes/kur/wan-socket.png',look:1};
@@ -838,7 +839,7 @@ var STEPT=0,CRIT={hens:8,cat:14,well:10};function stepSfx(dt){if(!window.CKS)ret
   [['hens',700,740,240,.35],['cat',ANIM[0].x,ANIM[0].y,200,.45],['well',690,500,200,.3]].forEach(function(q){CRIT[q[0]]-=dt;if(CRIT[q[0]]>0)return;CRIT[q[0]]=12+Math.random()*14;if(!busy&&Math.hypot(P.x-q[1],P.y-q[2])<q[3])CKS('kur-'+q[0],q[4]);});}
 var AMBT=0;function ambUpd(dt){stepSfx(dt);AMBT+=dt;if(AMBT<.25||!window.CKA)return;AMBT=0;var near=function(x,y,r){return Math.max(0,1-Math.hypot(P.x-x,(P.y-y)*1.3)/r);};
   CKA.amb('a06-tavern',.9*near(1100,600,420));CKA.amb('a07-forge',.8*near(1020,320,420));CKA.amb('a08-road',.8*near(1480,700,380));}
-function update(dt){moveEnt(P,dt,130);camera(dt);ambUpd(dt);
+function update(dt){cartUpd(dt);moveEnt(P,dt,130);camera(dt);ambUpd(dt);
   Object.keys(NPC).forEach(function(k){var n=NPC[k];moveEnt(n,dt,70);n.idle-=dt;if(n.idle<0){n.pose=n.pose?0:1;n.idle=n.pose?1.2+Math.random():3+Math.random()*4;}});
   if(!GOB.hidden)moveEnt(GOB,dt,GOB.run?210:90);
   ANIM.forEach(function(a){a.t+=dt;
@@ -858,7 +859,7 @@ function shadow(x,y,rx,a){c.fillStyle='rgba(30,18,8,'+(a||.3)+')';ell(c,x+2,y,rx
 function drawNPC(n){var m=SPR[n.id],f;if(n.moving)f=3+Math.floor(T*8)%3;else if(n.talk)f=2;else f=n.pose;
   shadow(n.x,n.y,15*n.sc/.4);sheet(n.id,f,n.x,n.y,n.sc,n.facing);}
 function drawGob(){if(GOB.hidden)return;var f=GOB.moving?3+Math.floor(T*(GOB.run?12:8))%3:GOB.talk?2:Math.floor(T*1.3)%2;shadow(GOB.x,GOB.y,10);sheet('phisher',f,GOB.x,GOB.y,GOB.sc,GOB.facing);}
-function drawHero(){var o=heroLook();
+function drawHero(){if(P.hidden)return;var o=heroLook();
   if(hero.sex==='m'&&+hero.hair===0&&+hero.skin===0&&+hero.cloth===0&&IMG.hero_walk.naturalWidth){shadow(P.x,P.y,14,.35);sheet('hero_walk',P.moving?Math.floor(T*9)%6:1,P.x,P.y,.235,P.facing);return;}
   o.moving=P.moving;o.facing=P.facing;drawPerson(c,P.x,P.y,o,T);}
 function drawAnim(a){var f;
@@ -907,13 +908,14 @@ function draw(){var r=cv.getBoundingClientRect();
   if(bgImg.complete&&bgImg.naturalWidth)c.drawImage(bgImg,0,0,W,H);
   towerFire();air();wanBox();
   if(MARK){c.strokeStyle='rgba(236,211,156,'+(.8*(1-MARK.t))+')';c.lineWidth=1.4;ell(c,MARK.x,MARK.y,9+MARK.t*6,3.5+MARK.t*2);c.stroke();}
-  var list=[{y:P.y,f:drawHero}];Object.keys(NPC).forEach(function(q){var n=NPC[q];list.push({y:n.y,f:function(){drawNPC(n)}});});
+  var list=[{y:P.y,f:drawHero}];if(CART)list.push({y:CART.y,f:drawCart});Object.keys(NPC).forEach(function(q){var n=NPC[q];list.push({y:n.y,f:function(){drawNPC(n)}});});
   list.push({y:GOB.y,f:drawGob});list.push({y:527,f:function(){if(PROP['well-fg'].naturalWidth)c.drawImage(PROP['well-fg'],608,322);}});ANIM.forEach(function(a){list.push({y:a.y,f:function(){drawAnim(a)}});});
   Object.keys(POLE).forEach(function(id){if(poleOn(id))list.push({y:POLE[id][1],f:function(){drawPole(id)}});});
   /* the hero is wider than one 16px strip: decide in front/behind once per object, by the strips under the hero's feet, so a slanted fence never slices the sprite */
   FG.forEach(function(o){var hb=null;if(P.x>o.x-28&&P.x<o.x+o.w+28){var b=-1;o.s.forEach(function(st){var x0=o.x+st[0],x1=x0+st[1];if(x1>P.x-7&&x0<P.x+7)b=Math.max(b,st[2]);});if(b>=0)hb=P.y>=b-6;}
     o.s.forEach(function(st){var ky=hb===null?st[2]:hb?Math.min(st[2],P.y-.01):Math.max(st[2],P.y+.01);list.push({y:ky,f:function(){if(o.im.naturalWidth)c.drawImage(o.im,st[0],0,st[1],o.h,o.x+st[0],o.y,st[1],o.h);}});});});
   list.sort(function(a,b){return a.y-b.y}).forEach(function(e){e.f();});
+  if(DUST)drawDust();
   Object.keys(LINKS).forEach(function(q){drawLink(LINKS[q])});glows();props();wireDraw();
   marker(goal());
   if(HOV&&!busy&&!SCRIPT){var nm=HOV.name+(HOV.role?' · '+HOV.role:''),lx=HOV.rect?(HOV.rect[0]+HOV.rect[2])/2:HOV.x,ly=HOV.rect?HOV.rect[3]+14:HOV.y+16;label(lx,ly,nm);}}
@@ -922,9 +924,33 @@ function resize(){var r=cv.getBoundingClientRect();DPR=Math.min(2,window.deviceP
   SC0=Math.max(r.width/W,r.height/H)*(r.width<700?1.1:1.6);BW=r.width;BH=r.height;SC=SC0*ZM;VW=BW/SC;VH=BH/SC;CAMI=false;}
 window.addEventListener('resize',function(){if(!document.getElementById('game').hidden)resize();});
 
+/* ================= arrival: Ганна й Остап привозять героя возом ================= */
+/* Plays once, on the first entry (no saved progress). The wagon comes up the cobbled Великий шлях, stops, the hero gets off, farewell, the wagon turns in a puff of dust and drives back down out of the frame. */
+var CART=null,DUST=null,CART_UP=[[1290,1190],[1330,1000],[1395,840],[1448,710],[1466,668]];
+function drawCart(){var k=CART.dir>0?'cart_toward':'cart_away',f=CART.moving?Math.floor(T*5)%4:CART.f;shadow(CART.x,CART.y-6,60,.3);sheet(k,f,CART.x,CART.y,CART.sc,1);}
+function cartUpd(dt){if(DUST){DUST.t+=dt;if(DUST.t>1.1)DUST=null;}
+  if(!CART)return;var pts=CART.route;if(!pts||!pts.length){CART.moving=false;if(CART.onArrive){var cb=CART.onArrive;CART.onArrive=null;cb();}}
+  else{var q=pts[0],dx=q[0]-CART.x,dy=q[1]-CART.y,d=Math.hypot(dx,dy),st=Math.min(d,70*dt);if(d<1){pts.shift();}else{CART.x+=dx/d*st;CART.y+=dy/d*st;CART.moving=true;}}
+  if(P.hidden){P.x=CART.x;P.y=CART.y-30;}
+  if(window.CKS&&CART.moving&&!document.hidden){CART.snd-=dt;if(CART.snd<=0){CART.snd=5.6;CKS('kur-cart-roll',.55);}}else CART.snd=0;}
+function cartGo(pts){return new Promise(function(r){CART.route=pts.map(function(p){return p.slice()});CART.onArrive=r;});}
+function drawDust(){var a=1-DUST.t/1.1;for(var i=0;i<9;i++){var an=i/9*Math.PI*2,rr=20+DUST.t*55*(1+(i%3)*.25);c.fillStyle='rgba(196,170,128,'+(.32*a)+')';ell(c,DUST.x+Math.cos(an)*rr,DUST.y-18+Math.sin(an)*rr*.4,18+DUST.t*22,9+DUST.t*10);c.fill();}}
+async function arrival(){SCRIPT=true;busy=true;P.hidden=true;P.route=[];P.facing=-1;
+  CART={x:CART_UP[0][0],y:CART_UP[0][1],dir:-1,f:4,sc:.92,moving:false,snd:0};FOCUS=CART;
+  try{await wait(400);await cartGo(CART_UP.slice(1));window.CKS&&CKS('kur-cart-stop',.6);await wait(500);
+    await say([['ostap','Тпру-у, Сірко! Стій, Рябко!']]);busy=true;
+    P.x=CART.x-74;P.y=CART.y-14;P.hidden=false;P.facing=1;FOCUS={x:CART.x-20,y:CART.y-40};window.CKS&&CKS('kur-steps-stone',.4);await wait(450);
+    await say([['hanna','Ось і Куренівка! Злазь, '+g('мандрівнику','мандрівнице')+', тільки обережно, колесо високе.'],['hero','Дякую, що підвезли!'],
+      ['hanna','Бачиш майдан? Там тебе вже виглядає староста Мирон.'],['ostap','Учися добре. А як знадобляться дрова, знаєш, де нас шукати.']]);
+    CART.f=5;busy=true;await say([['hanna','Бувай! І не забувай нас на узліссі!']]);busy=true;
+    DUST={x:CART.x,y:CART.y,t:0};await wait(380);CART.dir=1;CART.f=4;CART.y+=20;await wait(500);
+    await say([['ostap','Но, рушай! Додому.']]);busy=true;
+    var down=CART_UP.slice(0,-1).reverse().map(function(p){return [p[0],p[1]+20]});await cartGo(down);
+  }finally{CART=null;FOCUS=null;P.hidden=false;SCRIPT=false;busy=false;}}
+
 /* ================= start ================= */
 document.getElementById('iGo').onclick=async function(){document.getElementById('intro').hidden=true;document.getElementById('game').hidden=false;resize();renderInv();updQuest();
-  running=true;last=performance.now();requestAnimationFrame(frame);busy=true;await walkTo(P,1300,740);busy=false;toast(BACK?'Продовжуємо: «'+QT[Q][0]+'». '+QT[Q][1]:'Клацай по землі, щоб іти. Знайди старосту Мирона',4200);};
+  running=true;last=performance.now();requestAnimationFrame(frame);if(!BACK&&!KDONE){await arrival();toast('Клацай по землі, щоб іти. Знайди старосту Мирона на майдані',4200);return;}busy=true;await walkTo(P,1300,740);busy=false;toast(BACK?'Продовжуємо: «'+QT[Q][0]+'». '+QT[Q][1]:'Клацай по землі, щоб іти. Знайди старосту Мирона',4200);};
 inv=[];var BACK=loadSt();renderInv();updQuest();
 if(BACK){document.getElementById('iGo').textContent='Продовжити';document.getElementById('iSub').textContent=g('Учень','Учениця')+' з Узлісся · продовження квесту';}
 window.__kur={get W(){return WIRE?{t:WIRE.cfg.title,b:WIRE.busy,sel:WIRE.sel}:null},NODE:NODE,get ZM(){return ZM},get Q(){return Q},P:P,NPC:NPC,HOT:HOT,GOB:GOB,LINKS:LINKS,setQ:setQ,get busy(){return busy||SCRIPT},scr:function(x,y){var r=cv.getBoundingClientRect();return{x:r.left+(x-CAMX)*SC,y:r.top+(y-CAMY)*SC};}};
