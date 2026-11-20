@@ -279,7 +279,7 @@ function toast(t){window.CKS&&CKS('ui-toast',.35,{quiet:400});var d=document.cre
 function copy(text,btn){var done=function(){toast('Скопійовано: '+text)};
   try{navigator.clipboard.writeText(text).then(done,function(){sel(btn)});}catch(e){sel(btn)}}
 function sel(btn){var c=btn&&btn.parentNode.querySelector('code,.cv');if(c){var r=document.createRange();r.selectNodeContents(c);var s=getSelection();s.removeAllRanges();s.addRange(r);toast('Виділено, натисніть Ctrl+C');}}
-var logo='<div class="logo"><p class="eyebrow">Інформатика · 7–9 клас</p><h1>Кодове королівство</h1><div class="rule">✦</div><p>Знання тут сильніші за меч.</p></div>';
+var logo='<div class="logo"><h1>Кодове королівство</h1><div class="rule">✦</div><p>Знання тут сильніші за меч.</p></div>';
 
 /* ============ AUTH ============ */
 function renderAuth(){
@@ -303,7 +303,6 @@ function renderAuth(){
    (reg&&!teacher?'<p class="sub" style="font-size:13px">Після реєстрації потрібно ввести секретний код від учителя, щоб потрапити до свого класу.</p>':'')+
    '<div class="demo"><span>Демо без реєстрації</span><div class="row"><button type="button" class="btn plain sm" id="d-st">Демо-учень</button><button type="button" class="btn plain sm" id="d-te">Демо-вчитель</button><button type="button" class="btn plain sm" id="d-hero">Створення героя</button></div></div>'+
   '</form>'+
-  (pre?'<p class="note">Ви прийшли за посиланням-запрошенням. Після входу код класу <b class="mono">'+pre.slice(0,4)+'-'+pre.slice(4)+'</b> підставиться сам.</p>':'<p class="note">Це прототип: акаунти й прогрес зберігаються лише в цьому браузері.</p>')+
   '</div>';
   var $=function(id){return document.getElementById(id)};
   $('t-login').onclick=function(){state.tab='login';renderAuth()};
