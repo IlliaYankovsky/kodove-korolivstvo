@@ -546,7 +546,18 @@ var QT={
   final:['Вісті для кожної хати','Повернись до старости Мирона.'],
   done:['Квест виконано','Вісті дійшли до кожної хати.']};
 function goal(){switch(Q){case 'meet':return NPC.myron;case 'book':return NPC.filip;case 'wan':return HOT.pole;case 'fiber':return NPC.danylo;case 'switch':return NPC.taras;case 'place':return NPC.danylo;case 'cable':return NPC.taras;case 'wpa':return NPC.yaryna;case 'phish':return GOB.hidden?NPC.yaryna:GOB;case 'silent':return inv.indexOf('letter')>=0?NPC.myron:HOT.hutBL;case 'silent2':return HOT.swbox;case 'final':return NPC.myron;}return null;}
-function setQ(q){Q=q;STEPN=STEPS.indexOf(q);updQuest();}
+function setQ(q){Q=q;STEPN=STEPS.indexOf(q);updQuest();saveSt();}
+/* in-progress save: the world state after each step, so leaving to the map or closing the tab loses nothing */
+var RESTORING=false,stT=0;
+function kurSnap(){var ln=[],lt=[];Object.keys(LINKS).forEach(function(k){if(LINKS[k].on&&LINKS[k].t>=1)ln.push(k);});Object.keys(LIT).forEach(function(k){if(LIT[k]>0)lt.push(k);});
+  return {q:Q,inv:inv.slice(),open:Object.keys(OPEN),read:Object.keys(READ),bits:BITS,earn:EARN,links:ln,lit:lt,fire:FIRE>0?1:0,air:AIR>0?1:0,sw:SWITCH_ON?1:0,seal:SEAL_ON?1:0,broken:BROKEN?1:0,at:Date.now()};}
+function saveSt(now){if(RESTORING||Q==='done')return;clearTimeout(stT);var f=function(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.kur=Object.assign({},me.progress.kur||{},{st:kurSnap()});CK.put(me);};if(now)f();else stT=setTimeout(f,250);}
+function loadSt(){var me=CK.me(),kp=me&&me.progress&&me.progress.kur,st=kp&&kp.st;if(!st||!st.q||st.q==='meet'||st.q==='done'||STEPS.indexOf(st.q)<0)return false;RESTORING=true;
+  Q=st.q;STEPN=STEPS.indexOf(Q);inv=(st.inv||[]).filter(function(id){return ITEMS[id]});OPEN={net:1};(st.open||[]).forEach(function(k){OPEN[k]=1});READ={};(st.read||[]).forEach(function(k){READ[k]=1});
+  BITS=st.bits||0;EARN=st.earn||0;(st.links||[]).forEach(function(k){var L=LINKS[k];if(!L)return;L.on=true;linkPts(L);L.t=1;});(st.lit||[]).forEach(function(k){LIT[k]=1;});
+  FIRE=st.fire?1:0;AIR=st.air?1:0;SWITCH_ON=!!st.sw;SEAL_ON=!!st.seal;BROKEN=st.broken!==0;if(SEAL_ON)SEALT=-10;
+  RESTORING=false;return true;}
+window.addEventListener('pagehide',function(){if(!busy&&!WIRE)saveSt(1);});
 function updQuest(){var t=QT[Q];if(Q==='silent'&&inv.indexOf('letter')<0)t=['Хата, що мовчить','Оглянь крайню хату ліворуч, внизу майдану.'];
   document.getElementById('qTitle').textContent=t[0];document.getElementById('qText').textContent=t[1];
   var bar=document.getElementById('qBar'),n=STEPS.length-1,h='';for(var i=0;i<n;i++)h+='<i class="'+(i<STEPN?'on':'')+'"></i>';bar.innerHTML=h;
@@ -562,8 +573,8 @@ function renderInv(){invEl.innerHTML='';inv.forEach(function(id){var it=ITEMS[id
   b.setAttribute('aria-label',it.n);b.title=it.n;b.innerHTML='<img src="'+it.img+'" alt="">';
   b.onclick=function(){if(busy&&id!=='chronicle')return;if(id==='chronicle'){openBook();return;}imenu.innerHTML='<b>'+it.n+'</b><p>'+it.d+'</p><div class="row"><button class="btn plain sm" id="im-x">Гаразд</button></div>';imenu.hidden=false;document.getElementById('im-x').onclick=function(){imenu.hidden=true};};
   invEl.appendChild(b);});invEl.hidden=!inv.length;NEWI=null;}
-function addItem(id){if(window.CKS)CKS('ui-item',.8);if(inv.indexOf(id)<0)inv.push(id);NEWI=id;renderInv();updQuest();}
-function dropItem(id){var i=inv.indexOf(id);if(i>=0)inv.splice(i,1);renderInv();updQuest();}
+function addItem(id){if(window.CKS)CKS('ui-item',.8);if(inv.indexOf(id)<0)inv.push(id);NEWI=id;renderInv();updQuest();saveSt();}
+function dropItem(id){var i=inv.indexOf(id);if(i>=0)inv.splice(i,1);renderInv();updQuest();saveSt();}
 function earn(n){BITS+=n;EARN+=n;updQuest();}
 
 /* ---- dialog ---- */
@@ -575,8 +586,10 @@ function setSpeaker(k){var w=who(k);dlg.classList.toggle('hero',k==='hero');dlg.
 function say(lines){if(window.CKS)CKS('ui-dialog',.6,{quiet:150});return new Promise(function(res){var i=0;busy=true;dlg.hidden=false;toastEl.hidden=true;imenu.hidden=true;dActs.classList.remove('ask');
   function step(){var L=lines[i];setSpeaker(L[0]);dText.textContent=L[1];dActs.innerHTML='';dActs.classList.remove('ask');
     if(L[2]){dActs.classList.add('ask');L[2].forEach(function(ch,k){var b=document.createElement('button');b.type='button';b.className='btn sm '+(k?'plain':'gold');b.textContent=ch;b.onclick=function(){endTalk();res(k)};dActs.appendChild(b);});dActs.firstChild.focus();}
-    else{var b=document.createElement('button');b.type='button';b.className='next';b.textContent=i<lines.length-1?'Далі ›':'Завершити ›';b.onclick=function(){i++;if(i<lines.length)step();else{endTalk();res(-1);}};dActs.appendChild(b);b.focus();}}
+    else{var b=document.createElement('button');b.type='button';b.className='next';b.textContent='Далі ›';DLGT=Date.now();b.onclick=function(){i++;if(i<lines.length)step();else{endTalk();res(-1);}};dActs.appendChild(b);b.focus();}}
   step();});}
+/* tap anywhere (outside buttons and forms) moves the dialog on, like pressing «Далі» */
+var DLGT=0;document.addEventListener('click',function(e){if(dlg.hidden||Date.now()-DLGT<350)return;if(e.target.closest&&e.target.closest('button,a,input,select,textarea,label,#book,#wifi,#imenu'))return;var n=dActs.querySelector('.next');if(n){e.preventDefault();n.click();}},true);
 function endTalk(){dlg.hidden=true;dlg.querySelector('.body').classList.remove('tall');busy=false;Object.keys(NPC).forEach(function(q){NPC[q].talk=0;});GOB.talk=0;}
 function shuffle(n){var a=[];for(var i=0;i<n;i++)a.push(i);for(var j=n-1;j>0;j--){var r=Math.floor(Math.random()*(j+1)),t=a[j];a[j]=a[r];a[r]=t;}return a;}
 /* A question: options in random order, wrong answer → Філип's hint + a link to the right scroll; reward 8/4/2 біт. */
@@ -810,7 +823,7 @@ async function finale(){await say([['myron','Чуєш? У кожній хаті 
   document.getElementById('endText').textContent=hero.name+' '+g('дотягнув','дотягла')+' вісті від Великого шляху до кожної хати: скляна нитка до вежі, комутатор, дріт до кузні, печатка WPA3 на повітрі корчми. А фішинг-гоблін лишився без пароля.';
   document.getElementById('endRew').innerHTML='<span class="xp">+'+EARN+' біт</span><span><img src="art/items/byte.jpg" alt="">1 байт</span><span><img src="art/items/kur/zhupan.jpg" alt="">Жупан</span><span><img src="art/items/kur/chronicle.jpg" alt="">Комора: Тема 2</span>';
   setTimeout(function(){document.getElementById('end').hidden=false;document.getElementById('endGo').focus();},500);}
-function saveKur(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.kur={done:true,at:Date.now(),bits:EARN,read:Object.keys(READ)};me.progress.bits=(me.progress.bits||0)+EARN;CK.put(me);}
+function saveKur(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.kur={done:true,at:Date.now(),bits:EARN,read:Object.keys(READ),st:{q:'done'}};me.progress.bits=(me.progress.bits||0)+EARN;CK.put(me);}
 document.getElementById('endGo').onclick=function(){location.href='map.html';};
 document.getElementById('endAgain').onclick=function(){location.reload();};
 
@@ -897,7 +910,9 @@ function draw(){var r=cv.getBoundingClientRect();
   var list=[{y:P.y,f:drawHero}];Object.keys(NPC).forEach(function(q){var n=NPC[q];list.push({y:n.y,f:function(){drawNPC(n)}});});
   list.push({y:GOB.y,f:drawGob});list.push({y:527,f:function(){if(PROP['well-fg'].naturalWidth)c.drawImage(PROP['well-fg'],608,322);}});ANIM.forEach(function(a){list.push({y:a.y,f:function(){drawAnim(a)}});});
   Object.keys(POLE).forEach(function(id){if(poleOn(id))list.push({y:POLE[id][1],f:function(){drawPole(id)}});});
-  FG.forEach(function(o){o.s.forEach(function(st){list.push({y:st[2],f:function(){if(o.im.naturalWidth)c.drawImage(o.im,st[0],0,st[1],o.h,o.x+st[0],o.y,st[1],o.h);}});});});
+  /* the hero is wider than one 16px strip: decide in front/behind once per object, by the strips under the hero's feet, so a slanted fence never slices the sprite */
+  FG.forEach(function(o){var hb=null;if(P.x>o.x-28&&P.x<o.x+o.w+28){var b=-1;o.s.forEach(function(st){var x0=o.x+st[0],x1=x0+st[1];if(x1>P.x-7&&x0<P.x+7)b=Math.max(b,st[2]);});if(b>=0)hb=P.y>=b-6;}
+    o.s.forEach(function(st){var ky=hb===null?st[2]:hb?Math.min(st[2],P.y-.01):Math.max(st[2],P.y+.01);list.push({y:ky,f:function(){if(o.im.naturalWidth)c.drawImage(o.im,st[0],0,st[1],o.h,o.x+st[0],o.y,st[1],o.h);}});});});
   list.sort(function(a,b){return a.y-b.y}).forEach(function(e){e.f();});
   Object.keys(LINKS).forEach(function(q){drawLink(LINKS[q])});glows();props();wireDraw();
   marker(goal());
@@ -909,8 +924,9 @@ window.addEventListener('resize',function(){if(!document.getElementById('game').
 
 /* ================= start ================= */
 document.getElementById('iGo').onclick=async function(){document.getElementById('intro').hidden=true;document.getElementById('game').hidden=false;resize();renderInv();updQuest();
-  running=true;last=performance.now();requestAnimationFrame(frame);busy=true;await walkTo(P,1300,740);busy=false;toast('Клацай по землі, щоб іти. Знайди старосту Мирона',3600);};
-inv=[];renderInv();updQuest();
+  running=true;last=performance.now();requestAnimationFrame(frame);busy=true;await walkTo(P,1300,740);busy=false;toast(BACK?'Продовжуємо: «'+QT[Q][0]+'». '+QT[Q][1]:'Клацай по землі, щоб іти. Знайди старосту Мирона',4200);};
+inv=[];var BACK=loadSt();renderInv();updQuest();
+if(BACK){document.getElementById('iGo').textContent='Продовжити';document.getElementById('iSub').textContent=g('Учень','Учениця')+' з Узлісся · продовження квесту';}
 window.__kur={get W(){return WIRE?{t:WIRE.cfg.title,b:WIRE.busy,sel:WIRE.sel}:null},NODE:NODE,get ZM(){return ZM},get Q(){return Q},P:P,NPC:NPC,HOT:HOT,GOB:GOB,LINKS:LINKS,setQ:setQ,get busy(){return busy||SCRIPT},scr:function(x,y){var r=cv.getBoundingClientRect();return{x:r.left+(x-CAMX)*SC,y:r.top+(y-CAMY)*SC};}};
 })();
 </script>

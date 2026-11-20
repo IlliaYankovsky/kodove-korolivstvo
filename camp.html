@@ -235,7 +235,19 @@ var hero={sex:'m',hair:0,skin:0,cloth:0,name:'Тиміш'};
   if(m){hero.sex=m[1];hero.hair=+m[2];hero.skin=+m[3];hero.cloth=+m[4];hero.name=hero.sex==='f'?'Олеся':'Тиміш';}
   var n=h.match(/name=([^&]{2,16})/);if(n)hero.name=n[1];})();
 (function(){var me=CK.me();if(me&&me.hero){['sex','hair','skin','cloth','name'].forEach(function(k){if(me.hero[k]!=null&&me.hero[k]!=='')hero[k]=me.hero[k];});}})();
-function saveCamp(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.camp={done:true,at:Date.now()};CK.put(me);}
+function campSnap(){return {q:Q,inv:inv.map(function(x){return {id:x.id,n:x.n}}),ground:ground.map(function(g){return {id:g.id,n:g.n,x:Math.round(g.x),y:Math.round(g.y)}}),trees:trees.map(function(t){return t.hits}),talks:annaTalks,at:Date.now()};}
+var RESTORING=false,stT=0;
+function saveSt(){if(RESTORING||Q==='cutscene')return;clearTimeout(stT);stT=setTimeout(function(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.camp=Object.assign({},me.progress.camp||{},{st:campSnap()});CK.put(me);},250);}
+function saveCamp(){var me=CK.me();if(!me)return;me.progress=me.progress||{};me.progress.camp={done:true,at:Date.now(),st:campSnap()};CK.put(me);}
+function loadSt(){var me=CK.me(),cp=me&&me.progress&&me.progress.camp;if(!cp)return false;var st=cp.st;
+  if(!st&&cp.done)st={q:'done'};if(!st||!st.q||st.q==='intro'&&!st.talks)return false;RESTORING=true;
+  Q=st.q==='cutscene'?'active':st.q==='offered'?'declined':st.q;
+  annaTalks=st.talks||(Q==='intro'?0:1);
+  if(st.inv)inv=[0,1,2].map(function(i){var x=st.inv[i];return x&&x.id&&ITEMS[x.id]?{id:x.id,n:x.n||1}:{id:'',n:0};});
+  if(st.ground)ground=st.ground.filter(function(g){return ITEMS[g.id]});
+  if(st.trees)trees.forEach(function(t,i){t.hits=Math.min(4,st.trees[i]||0);t.fall=0;});
+  if(Q==='done'){fire.str=1.5;fire.target=1.5;cooking=1;}
+  RESTORING=false;return true;}
 function heroKey(){return hero.sex+'-'+hero.hair+'-'+hero.skin+'-'+hero.cloth;}
 function heroPic(){return 'art/heroes/'+heroKey()+'.jpg';}
 function g(m,f){return hero.sex==='f'?f:m;}
@@ -534,12 +546,13 @@ function hair(g,o){var hc=o.hairC,hd=mix(hc,'#000000',.4),hl=mix(hc,'#e8d0a0',.1
   if(o.beard){g.fillStyle=o.hairC;g.beginPath();g.moveTo(-1,-64);g.quadraticCurveTo(0,-57.5,4,-58);g.quadraticCurveTo(7.4,-59,6.8,-63);g.quadraticCurveTo(4,-62,-1,-64);g.fill();}}
 
 /* ================= ground items ================= */
-function drawGroundItem(gi){var x=gi.x,y=gi.y,im=GIMG[gi.id],hov=HOV===gi;
+var PICK={branch:'підібрати гілки',wood:'підібрати дрова',leaves:'підібрати листя',axe:'підібрати сокиру'};
+function drawGroundItem(gi){var x=gi.x,y=gi.y,im=GIMG[gi.id],hov=HOV===gi,need=Q==='active'&&(gi.id==='branch'||gi.id==='wood'||gi.id==='axe')&&useful()<NEED;
   if(im&&im.complete&&im.naturalWidth){var sz=gi.id==='wood'?32:gi.id==='axe'?30:28,s=sz/Math.max(im.naturalWidth,im.naturalHeight),w=im.naturalWidth*s,h=im.naturalHeight*s;
-    if(hov){var gg=c.createRadialGradient(x,y-h*.35,2,x,y-h*.35,sz*.9);gg.addColorStop(0,'rgba(255,214,140,.35)');gg.addColorStop(1,'rgba(255,214,140,0)');c.fillStyle=gg;ell(c,x,y-h*.35,sz*.9,sz*.7);c.fill();}
+    if(hov||need){var pa=hov?.35:.18+.14*Math.sin(T*3.2+x*.05),gg=c.createRadialGradient(x,y-h*.35,2,x,y-h*.35,sz*.9);gg.addColorStop(0,'rgba(255,214,140,'+pa+')');gg.addColorStop(1,'rgba(255,214,140,0)');c.fillStyle=gg;ell(c,x,y-h*.35,sz*.9,sz*.7);c.fill();}
     c.fillStyle='rgba(0,0,0,.42)';ell(c,x+1,y+1,w*.42,4);c.fill();
     c.save();if(hov){c.shadowColor='rgba(255,210,130,1)';c.shadowBlur=10*SC*DPR;}c.translate(x,y+2);c.rotate((srand(Math.round(gi.x+gi.y))-.5)*.4);c.drawImage(im,-w/2,-h,w,h);c.restore();
-    if(hov||Math.hypot(P.x-x,P.y-y)<120)label(x,y+14,'підібрати',hov?1:.85);return;}
+    if(hov||Math.hypot(P.x-x,P.y-y)<120)label(x,y+14,PICK[gi.id]||'підібрати',hov?1:.85);return;}
   c.fillStyle='rgba(0,0,0,.35)';ell(c,x+1,y+1,10,3.5);c.fill();
   if(gi.id==='axe'){c.save();c.translate(x,y-2);c.rotate(-.3);limb(c,-10,0,10,0,2.4,'#6a4a2c');c.fillStyle='#9aa0a6';c.beginPath();c.moveTo(6,-1);c.lineTo(8,-8);c.quadraticCurveTo(13,-6,12,0);c.closePath();c.fill();c.restore();}
   else if(gi.id==='wood'){for(var i=0;i<2;i++){var gr=c.createLinearGradient(0,y-6-i*5,0,y-i*5);gr.addColorStop(0,'#8a6440');gr.addColorStop(1,'#3e2b1c');c.fillStyle=gr;c.fillRect(x-10+i*2,y-6-i*5,18,6);c.fillStyle='#d5bb88';ell(c,x+8+i*2,y-3-i*5,2,3);c.fill();}}
@@ -589,7 +602,8 @@ function updQuest(){qBar.hidden=Q!=='active';
   else if(Q==='active'){var u=useful();qTitle.textContent='Нарубати дров';qText.textContent=(hasAxe()?'Рубай дерева на галявині.':'Сокира лежить на землі: підбери її.')+' Гілки й дрова: '+Math.min(u,NEED)+' з '+NEED+(u>=NEED?'. Неси Ганні.':'.');
     var h='';for(var i=0;i<NEED;i++)h+='<i class="'+(i<u?'on':'')+'"></i>';qBar.innerHTML=h;}
   else if(Q==='cutscene'){qTitle.textContent='Біля вогнища';qText.textContent='Вечеря вариться.';}
-  else{qTitle.textContent='Вирушити до Куренівки';qText.textContent='Квест виконано.';}}
+  else{qTitle.textContent='Вирушити до Куренівки';qText.textContent='Квест виконано.';}
+  saveSt();}
 var toastEl=document.getElementById('toast'),tt=null;
 function toast(t,ms){window.CKS&&CKS('ui-toast',.35,{quiet:400});toastEl.textContent=t;toastEl.hidden=false;clearTimeout(tt);tt=setTimeout(function(){toastEl.hidden=true},ms||2600);}
 
@@ -603,8 +617,10 @@ function say(lines){window.CKS&&CKS('ui-dialog',.6,{quiet:150});return new Promi
     dlg.classList.toggle('hero',L[0]==='hero');setPic(w.p);dPic.alt=w.n;dName.innerHTML='';dName.appendChild(document.createTextNode(w.n));var sm=document.createElement('small');sm.textContent=w.r;dName.appendChild(sm);
     dText.textContent=L[1];dActs.innerHTML='';
     if(L[2]){L[2].forEach(function(ch,k){var b=document.createElement('button');b.type='button';b.className='btn sm '+(k?'plain':'gold');b.textContent=ch;b.onclick=function(){dlg.hidden=true;busy=false;res(k)};dActs.appendChild(b);});dActs.firstChild.focus();}
-    else{var b=document.createElement('button');b.type='button';b.className='next';b.textContent=i<lines.length-1?'Далі ›':'Завершити ›';b.onclick=function(){i++;if(i<lines.length)step();else{dlg.hidden=true;busy=false;res(-1);}};dActs.appendChild(b);b.focus();}}
+    else{var b=document.createElement('button');b.type='button';b.className='next';b.textContent='Далі ›';DLGT=Date.now();b.onclick=function(){i++;if(i<lines.length)step();else{dlg.hidden=true;busy=false;res(-1);}};dActs.appendChild(b);b.focus();}}
   step();});}
+/* tap anywhere (outside buttons and forms) moves the dialog on, like pressing «Далі» */
+var DLGT=0;document.addEventListener('click',function(e){if(dlg.hidden||Date.now()-DLGT<350)return;if(e.target.closest&&e.target.closest('button,a,input,select,textarea,label,#book,#wifi,#imenu'))return;var n=dActs.querySelector('.next');if(n){e.preventDefault();n.click();}},true);
 function wait(ms){return new Promise(function(r){setTimeout(r,ms)});}
 function walk(e,x,y){return new Promise(function(res){e.tx=x;e.ty=y;e.onArrive=res;});}
 
@@ -656,12 +672,13 @@ async function finale(){
   (window.CKS&&CKS('camp-eat',.8)),toast('Ти поїв'+g('','ла')+' гарячого кулешу. Сили відновлено.');
   ostap.chopping=false;busy=true;await walk(ostap,fire.x-125,fire.y+34);ostap.facing=1;
   await say([['ostap','Слухай, а йди з нами. Утрьох у дорозі веселіше.'],['hanna','Ми прямуємо до Куренівки, першого села за лісом.'],['hanna','Там є таверна, де можна підживитися, і кузня. Отримаєш перші обладунки й серйозні завдання.'],['hero','Вирушаймо разом!']]);
+  if(hasAxe()||cnt('leaves')){await say([['ostap','Тільки сокиру поверни, то моя запасна. У Куренівці тобі дадуть іншу роботу, не для сокири.']]);inv=inv.map(function(){return {id:'',n:0}});renderInv();toast('Сокиру повернуто Остапові');}
   Q='done';updQuest();busy=false;saveCamp();if(window.CKA)CKA.sting('m09-quest-done');
   document.getElementById('endText').textContent='Вогонь знову палає, а '+hero.name+' вечеряє з Ганною й Остапом. Зранку всі троє рушають до Куренівки: там таверна, кузня й перші справжні випробування.';
   document.getElementById('end').hidden=false;document.getElementById('endGo').focus();
 }
 document.getElementById('endGo').onclick=function(){saveCamp();location.href='map.html';};
-document.getElementById('endAgain').onclick=function(){location.reload();};
+document.getElementById('endAgain').onclick=function(){var me=CK.me();if(me&&me.progress&&me.progress.camp){me.progress.camp.st={q:'intro',talks:0,at:Date.now()};CK.put(me);}location.reload();};
 
 /* ---- input ---- */
 var SC=1,DPR=1,VW=W,VH=H,CAMX=0,CAMY=0;
@@ -694,7 +711,7 @@ function dropSpot(x,y){var a0=Math.atan2(ECY-y,ECX-x);for(var r=0;r<=150;r+=12){
 function pickup(gi){if(!addItem(gi.id,gi.n)){toast('Немає місця: усі три віконця зайняті.');flashFull();return;}ground.splice(ground.indexOf(gi),1);window.CKS&&CKS('ui-item',.8);toast('Підібрано: '+ITEMS[gi.id].n);}
 var DROPS=['leaves','branch','branch','wood'];
 function chop(t){
-  if(!hasAxe()){toast(Q==='active'?'Потрібна сокира: підбери її з землі.':'Голими руками дерево не зрубаєш. Потрібна сокира.');return;}
+  if(!hasAxe()){toast(Q==='active'||Q==='done'?'Потрібна сокира: підбери її з землі.':'Голими руками дерево не зрубаєш. Сокира є в Остапа, але спершу поговори з Ганною біля вогнища.',3600);return;}
   if(Q!=='active'&&Q!=='done'){toast('Остап косо дивиться: «Не чіпай наші дерева без дозволу».');return;}
   if(t.hits>=4){toast('Тут лишився тільки пень.');return;}
   P.swing=1;t.shake=1;var id=DROPS[t.hits];t.hits++;if(window.CKS){CKS('camp-axe');var hh=t.hits;setTimeout(function(){CKS(hh>=4?'camp-tree':hh===1?'camp-leaves':'camp-branches',.8);},160);if(hh>=4)setTimeout(function(){CKS('camp-logs',.7);},2300);}leafBurst(t,t.hits===1?26:12);
@@ -702,8 +719,10 @@ function chop(t){
   if(addItem(id)){toast('+1 '+ITEMS[id].n.toLowerCase()+(t.hits>=4?'. Дерево зрубано.':''),1600);}
   else{var ds=dropSpot(t.x+(P.x<t.x?-30:30)+(srand(t.hits+t.id)-.5)*30,t.y+30);ground.push({id:id,n:1,x:ds.x,y:ds.y});toast('Немає місця: '+ITEMS[id].n.toLowerCase()+' впало на землю. Викинь зайве, клацнувши на віконце.',3600);flashFull();}
   if(!fullHint&&inv.every(function(s){return s.id})&&cnt('leaves')){fullHint=true;setTimeout(function(){toast('Усі три віконця зайняті. Листя не потрібне: клацни на нього й вибери «Викинути».',4200)},1700);}
-  updQuest();
+  updQuest();outHint();
 }
+var outShown=0;function outHint(){if(Q!=='active'||useful()>=NEED||!trees.every(function(t){return t.hits>=4}))return;var on=ground.some(function(g){return g.id==='branch'||g.id==='wood'});
+  if(on&&outShown<2){outShown++;setTimeout(function(){toast('Дерев більше нема, але гілки й дрова лежать на землі. Вони світяться: підбери їх.',4600)},1800);}}
 
 /* ---- update ---- */
 function blocked(x,y){if(!inEll(x,y,.96))return true;for(var i=0;i<obstacles.length;i++){var o=obstacles[i];if(o.hits>=4)continue;var a=(x-o.x)/(o.rx+12),b=(y-o.y)/(o.ry+8);if(a*a+b*b<1)return true;}return false;}
@@ -773,8 +792,9 @@ function draw(){
 document.getElementById('iGo').onclick=function(){if(!bgImg.complete){bgImg.onload=function(){document.getElementById('iGo').click()};return;}
   document.getElementById('intro').hidden=true;document.getElementById('game').hidden=false;
   document.getElementById('cPic').src=heroPic();document.getElementById('cName').textContent=hero.name;
-  resize();renderInv();updQuest();running=true;last=performance.now();requestAnimationFrame(frame);
-  setTimeout(function(){toast('Клацай або торкайся землі, щоб іти. Підійди до людей біля вогнища.',4200)},400);};
+  var back=loadSt();resize();renderInv();updQuest();running=true;last=performance.now();requestAnimationFrame(frame);
+  if(back&&window.CKA&&Q==='done')CKA.music('m05-camp-fire');
+  setTimeout(function(){toast(back?(Q==='done'?'Ти знову в таборі. Вогонь палає.':'Прогрес збережено: продовжуємо з того самого місця.'):'Клацай або торкайся землі, щоб іти. Підійди до людей біля вогнища.',4200);if(back)outHint();},400);};
 window.__dbg={HOV:function(){return HOV},ground:function(){return ground},anna:anna,STIR:STIR,ostapO:ostap,ox2:ox2,annaToStir:annaToStir,setQ:function(q){Q=q},P:P,ox:ox,parts:parts,dropSpot:dropSpot,trees:trees,inv:function(){return inv},Q:function(){return Q},anna:anna,ostap:ostap,hero:hero,fire:fire,talkAnna:function(){return talkAnna()},give:function(id,n){addItem(id,n)}};
 })();
 </script>

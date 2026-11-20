@@ -20,12 +20,22 @@ function tick(){var dt=1/30;tracks.forEach(function(a){var tgt=a._t*(a._sting?1:
   if(a._t===0&&a._g<.003&&!a.paused){a.pause();}});
   tracks=tracks.filter(function(a){return !(a._t===0&&a.paused&&a!==cur&&!a._amb);});}
 setInterval(tick,1000/30);
-function start(a){if(muted)return;if(!unlocked){probe(a);return;}var p=a.play();if(p&&p.catch)p.catch(function(){});}
+function start(a){if(muted||asleep)return;if(!unlocked){probe(a);return;}var p=a.play();if(p&&p.catch)p.catch(function(){});}
 /* try to start without a click: works when the browser already allows sound on this site (e.g. after clicking on the previous page) */
 var probing=false;function probe(a){if(probing||unlocked)return;probing=true;try{var p=a.play();if(p&&p.then)p.then(function(){probing=false;unlock();},function(){probing=false;a.pause();locked();});else{probing=false;}}catch(e){probing=false;}}
 function locked(){if(unlocked||!btn)return;btn.classList.add('ck-wait');btn.title='Торкнись будь-де, щоб увімкнути звук';}
 function music(name){want=name;if(cur&&cur._name===name){cur._t=1;start(cur);return;}
-  if(cur)cur._t=0;cur=null;if(!name)return;cur=mk(name,true);cur._t=1;tracks.push(cur);start(cur);}
+  if(cur)cur._t=0;cur=null;if(!name)return;
+  /* a track with this name may still be fading out: bring it back instead of starting a second copy */
+  var old=tracks.filter(function(a){return a._name===name&&!a._amb&&!a._sting;})[0];
+  tracks.forEach(function(a){if(a!==old&&!a._amb&&!a._sting)a._t=0;});
+  cur=old||mk(name,true);cur._t=1;if(!old)tracks.push(cur);start(cur);claim();}
+/* only one game tab or window plays at a time: the one the player used last */
+var ME=Math.random().toString(36).slice(2),bc=null,asleep=false;try{bc=new BroadcastChannel('ck-audio');}catch(e){}
+function claim(){asleep=false;if(bc)try{bc.postMessage(ME);}catch(e){}}
+if(bc)bc.onmessage=function(e){if(e.data===ME)return;asleep=true;tracks.forEach(function(a){try{a.pause();}catch(x){}});voStop();};
+function wake(){if(!asleep)return;claim();if(cur&&cur._t>0)start(cur);Object.keys(LAY).forEach(function(k){if(LAY[k]._t>0)start(LAY[k]);});}
+window.addEventListener('focus',wake);document.addEventListener('visibilitychange',function(){if(!document.hidden)wake();});window.addEventListener('pointerdown',wake,true);
 function sting(name,opts){opts=opts||{};if(!unlocked||muted)return;var a=mk(name,false);a._sting=1;a._t=1;a._g=muted?0:VOL;a.volume=a._g;tracks.push(a);
   duckK=opts.duck==null?.25:opts.duck;var p=a.play();if(p&&p.catch)p.catch(function(){});
   a.addEventListener('ended',function(){a._t=0;duckK=1;});}
@@ -60,7 +70,7 @@ function watchDlg(){var dlg=document.getElementById('dlg'),dt=document.getElemen
 /* every button clicks; on a mouse, a soft brush when the pointer moves onto a new button */
 var CLK='button,.btn,[role=button],a[href],summary',hovEl=null;
 document.addEventListener('click',function(e){var el=e.target.closest&&e.target.closest(CLK);if(el&&!el.disabled)sfx('ui-click',.5);},true);
-document.addEventListener('pointerover',function(e){if(e.pointerType!=='mouse')return;var el=e.target.closest&&e.target.closest(CLK);if(el!==hovEl){hovEl=el;if(el&&!el.disabled)sfx('ui-hover',.22,{gap:90});}},true);
+document.addEventListener('pointerover',function(e){if(e.pointerType!=='mouse')return;var el=e.target.closest&&e.target.closest(CLK);if(el!==hovEl){hovEl=el;if(el&&!el.disabled)sfx('ui-hover',.16,{gap:160});}},true);
 /* ambience layer: CKA.amb('a05-kurenivka',.6); volume 0 pauses it */
 function amb(name,v){var a=LAY[name];if(!a){if(!(v>0))return;a=LAY[name]=mk(name,true,'audio/amb/');a._amb=1;tracks.push(a);}a._t=Math.max(0,Math.min(1,v||0));if(a._t>0&&a.paused)start(a);}
 function unlock(){if(unlocked)return;unlocked=true;if(btn){btn.classList.remove('ck-wait');}if(voPend){var vp=voPend;voPend=null;setTimeout(function(){vo(vp)},120);}if(cur)start(cur);Object.keys(LAY).forEach(function(k){if(LAY[k]._t>0)start(LAY[k]);});}
